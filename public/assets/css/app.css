@@ -977,34 +977,156 @@ body {
 }
 
 @media (max-width: 768px) {
+  .app-main-dre {
+    height: calc(100dvh - 56px);
+  }
+
+  .dre-page {
+    padding: .5rem !important;
+  }
+
+  .dre-page > .card:first-child {
+    margin-bottom: .5rem !important;
+  }
+
+  .dre-page > .card:first-child .card-body {
+    padding: .5rem !important;
+  }
+
+  .dre-page .form-label {
+    font-size: .7rem;
+  }
+
+  .dre-page .form-select-sm,
+  .dre-page .form-control-sm,
+  .dre-page .btn-sm {
+    min-height: 34px;
+  }
+
   .dre-report-toolbar {
     align-items: stretch;
     flex-direction: column;
+    gap: .55rem;
+    min-height: 0;
+    padding: .6rem .7rem;
   }
 
   .dre-tools {
+    display: grid;
+    grid-template-columns: repeat(4, 36px) minmax(150px, 1fr);
     width: 100%;
+    gap: .35rem;
+  }
+
+  .dre-tools .btn {
+    width: 36px;
+    min-width: 36px;
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .dre-tools #treeSearch {
     width: 100%;
     max-width: none;
+    min-width: 0;
   }
 
   .dre-code-col {
-    width: 65px;
-    min-width: 65px;
-    max-width: 65px;
+    width: 56px;
+    min-width: 56px;
+    max-width: 56px;
   }
 
   .dre-desc-col {
-    left: 65px;
-    width: 300px;
-    min-width: 300px;
-    max-width: 300px;
+    left: 56px;
+    width: 220px;
+    min-width: 220px;
+    max-width: 220px;
   }
 
   .dre-money-col {
-    min-width: 100px;
+    width: 112px;
+    min-width: 112px;
+    max-width: 112px;
+  }
+
+  .dre-month-col {
+    width: 112px;
+    min-width: 112px;
+    max-width: 112px;
+  }
+
+  .dre-detail-col {
+    width: 98px;
+    min-width: 98px;
+    max-width: 98px;
+  }
+
+  .dre-report-table {
+    font-size: .76rem;
+  }
+
+  .dre-report-table thead th {
+    padding: .42rem .4rem;
+    font-size: .7rem;
+  }
+
+  .dre-report-table tbody td {
+    padding: .28rem .4rem;
+  }
+
+  .dre-label {
+    gap: .25rem;
+    padding-left: calc(var(--level) * 14px);
+  }
+
+  .dre-toggle,
+  .dre-leaf {
+    width: 16px;
+    height: 16px;
+    flex-basis: 16px;
+  }
+
+  .dre-percent {
+    font-size: .56rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-navbar .navbar-brand {
+    font-size: .95rem;
+  }
+
+  .dre-tools {
+    grid-template-columns: repeat(4, 34px);
+  }
+
+  .dre-tools #treeSearch {
+    grid-column: 1 / -1;
+  }
+
+  .dre-tools .btn {
+    width: 34px;
+    min-width: 34px;
+  }
+
+  .dre-code-col {
+    width: 50px;
+    min-width: 50px;
+    max-width: 50px;
+  }
+
+  .dre-desc-col {
+    left: 50px;
+    width: 185px;
+    min-width: 185px;
+    max-width: 185px;
+  }
+
+  .dre-money-col,
+  .dre-month-col {
+    width: 104px;
+    min-width: 104px;
+    max-width: 104px;
   }
 }
