@@ -1,0 +1,18 @@
+/.env
+/.DS_Store
+/Thumbs.db
+
+/balancete.RTF.doc
+/DEMONSTRATIVO MENSAL 2026.xlsx
+
+/config/database.php
+
+/storage/*.log
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/storage/exports/*
+!/storage/exports/.gitkeep
+
+*.tmp
+*.bak
+*.swp

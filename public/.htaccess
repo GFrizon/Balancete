@@ -1,0 +1,19 @@
+Options -Indexes
+RewriteEngine On
+
+# Forçar HTTPS (descomente em produção com SSL)
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Não redirecionar arquivos e pastas existentes
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Enviar tudo para index.php
+RewriteRule ^(.*)$ index.php?route=$1 [QSA,L]
+
+# Segurança: bloquear arquivos sensíveis
+<FilesMatch "\.(sql|log|ini|env|bak|sh|git)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>

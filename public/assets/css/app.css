@@ -1,0 +1,1014 @@
+/* ============================================================
+   BALANCETE DRE — CSS Principal
+   Bootstrap 5 + Custom Styles
+   ============================================================ */
+
+/* ---- Variables ---- */
+:root {
+  --navbar-bg:        #1e3a5f;
+  --page-bg:          #f0f2f5;
+  --card-shadow:      0 1px 4px rgba(0,0,0,.08);
+  --section-bg:       #2c3e50;
+  --section-fg:       #ffffff;
+  --subtotal-bg:      #e8f0fe;
+  --subtotal-fg:      #1a237e;
+  --total-bg:         #1565c0;
+  --total-fg:         #ffffff;
+  --negative:         #c62828;
+  --positive:         #1b5e20;
+  --zero:             #adb5bd;
+  --pct-color:        #555;
+  --sticky-z:         10;
+  --thead-bg:         #1e3a5f;
+  --thead-fg:         #ffffff;
+  --subhead-bg:       #e9ecef;
+  --row-hover:        #f8faff;
+  --border-color:     #dee2e6;
+}
+
+/* ---- Base ---- */
+body {
+  background: var(--page-bg);
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: .875rem;
+  color: #212529;
+}
+
+.btn-primary,
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus {
+  background: #4a90d9;
+  border-color: #4a90d9;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #3a7bc8;
+  border-color: #3a7bc8;
+}
+
+.btn-primary:active,
+.btn-primary:focus-visible {
+  background: #2e6bb3;
+  border-color: #2e6bb3;
+}
+
+/* ---- Navbar ---- */
+.app-navbar {
+  background: var(--navbar-bg) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  padding-top: .5rem;
+  padding-bottom: .5rem;
+}
+
+.app-navbar .navbar-brand {
+  font-size: 1.05rem;
+  letter-spacing: .02em;
+}
+
+.app-navbar .nav-link {
+  font-size: .82rem;
+  padding: .35rem .7rem;
+  border-radius: .35rem;
+  transition: background .15s;
+}
+
+.app-navbar .nav-link:hover,
+.app-navbar .nav-link.active {
+  background: rgba(255,255,255,.15);
+}
+
+/* ---- Main ---- */
+.app-main {
+  min-height: calc(100vh - 56px - 40px);
+  padding-bottom: 2rem;
+}
+
+.app-main-dre {
+  height: calc(100vh - 56px);
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.app-footer {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-top: 1px solid var(--border-color);
+}
+
+/* ---- Flash messages ---- */
+.flash-container {
+  position: fixed;
+  top: 65px;
+  right: 1rem;
+  z-index: 9999;
+  min-width: 300px;
+  max-width: 450px;
+}
+
+/* ---- KPI Cards ---- */
+.kpi-card {
+  border: none;
+  border-radius: .6rem;
+  box-shadow: var(--card-shadow);
+  transition: box-shadow .2s;
+}
+
+.kpi-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+
+.kpi-card .kpi-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: .5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  margin-bottom: .5rem;
+}
+
+.kpi-card .kpi-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #1a1a2e;
+  word-break: break-word;
+}
+
+.kpi-card .kpi-label {
+  font-size: .75rem;
+  color: #6c757d;
+  margin-top: .2rem;
+}
+
+/* ---- Financial Cards (Dashboard) ---- */
+.fin-card {
+  border: none;
+  border-radius: .75rem;
+  box-shadow: var(--card-shadow);
+  background: #fff;
+  transition: transform .15s, box-shadow .15s;
+}
+
+.fin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.08);
+}
+
+.fin-card .fin-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  margin-bottom: .75rem;
+}
+
+.fin-card .fin-label {
+  font-size: .75rem;
+  font-weight: 500;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.fin-card .fin-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: #334155;
+  word-break: break-word;
+}
+
+.fin-card .fin-sub {
+  font-size: .7rem;
+  color: #94a3b8;
+  margin-top: .25rem;
+}
+
+.fin-card.receita .fin-icon { background: #ecfdf5; color: #10b981; }
+.fin-card.custo .fin-icon { background: #fef2f2; color: #ef4444; }
+.fin-card.resultado .fin-icon { background: #eff6ff; color: #3b82f6; }
+
+.fin-card.receita .fin-value { color: #059669; }
+.fin-card.custo .fin-value { color: #dc2626; }
+.fin-card.resultado .fin-value { color: #2563eb; }
+
+/* ---- Financial Cards V2 (Modern Design) ---- */
+.fin-card-v2 {
+  border: none;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  transition: all .2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.fin-card-v2::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0;
+  transition: opacity .2s;
+}
+
+.fin-card-v2:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0,0,0,.1);
+}
+
+.fin-card-v2:hover::before {
+  opacity: 1;
+}
+
+.fin-card-v2.receita { color: #10b981; }
+.fin-card-v2.custo { color: #ef4444; }
+.fin-card-v2.resultado { color: #3b82f6; }
+
+.fin-icon-v2 {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+}
+
+.fin-icon-v2.receita {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #059669;
+}
+
+.fin-icon-v2.custo {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+}
+
+.fin-icon-v2.resultado {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #2563eb;
+}
+
+.fin-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fin-badge.receita {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.fin-badge.custo {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.fin-badge.resultado {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.fin-label-v2 {
+  font-size: .7rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-bottom: .5rem;
+}
+
+.fin-value-v2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: .25rem;
+}
+
+.fin-value-v2.receita { color: #059669; }
+.fin-value-v2.custo { color: #dc2626; }
+.fin-value-v2.resultado { color: #2563eb; }
+
+.fin-sub-v2 {
+  font-size: .75rem;
+  color: #94a3b8;
+}
+
+/* ---- Cards gerais ---- */
+.card {
+  border-radius: .6rem;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--card-shadow);
+}
+
+.card-header {
+  background: #fff;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: .6rem .6rem 0 0 !important;
+}
+
+/* ---- Login ---- */
+.login-bg {
+  background: linear-gradient(135deg, #1e3a5f 0%, #2c6fad 100%);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  border-radius: 1rem;
+  border: none;
+}
+
+.login-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--navbar-bg);
+  border-radius: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.8rem;
+}
+
+/* ---- Upload area ---- */
+.upload-area {
+  border: 2px dashed #adb5bd;
+  border-radius: .6rem;
+  background: #fafbfc;
+  transition: border-color .2s, background .2s;
+  cursor: pointer;
+}
+
+.upload-area-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1rem;
+  text-align: center;
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+  border-color: #0d6efd;
+  background: #f0f7ff;
+}
+
+/* ============================================================
+   TABELA DRE PRINCIPAL
+   ============================================================ */
+
+.dre-table-wrap {
+  overflow: hidden;
+  border-radius: .6rem;
+}
+
+.dre-scroll {
+  overflow-x: auto;
+  max-height: calc(100vh - 340px);
+  overflow-y: auto;
+}
+
+.dre-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .8rem;
+  min-width: 700px;
+}
+
+/* Cabeçalho fixo */
+.dre-thead {
+  position: sticky;
+  top: 0;
+  z-index: var(--sticky-z);
+}
+
+.dre-thead tr:first-child th {
+  background: var(--thead-bg);
+  color: var(--thead-fg);
+  font-weight: 700;
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: .5rem .5rem;
+  border-bottom: none;
+  white-space: nowrap;
+}
+
+.dre-thead .dre-subhead th {
+  background: var(--subhead-bg);
+  color: #495057;
+  font-size: .73rem;
+  font-weight: 600;
+  padding: .3rem .5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Coluna sticky */
+.sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: calc(var(--sticky-z) - 1);
+  background: inherit;
+  white-space: nowrap;
+  min-width: 220px;
+  max-width: 280px;
+  box-shadow: 2px 0 4px rgba(0,0,0,.06);
+}
+
+.dre-thead tr:first-child .sticky-col {
+  z-index: var(--sticky-z);
+  background: var(--thead-bg);
+}
+
+.dre-thead .dre-subhead .sticky-col {
+  background: var(--subhead-bg);
+  z-index: var(--sticky-z);
+}
+
+/* Colunas */
+.dre-col-month { min-width: 150px; }
+.dre-col-acc   { min-width: 150px; }
+.dre-col-avg   { min-width: 90px; }
+.dre-val-col   { min-width: 100px; white-space: nowrap; padding: .35rem .5rem; }
+.dre-pct-col   { min-width: 55px; white-space: nowrap; padding: .35rem .3rem; color: var(--pct-color); font-size: .75rem; }
+
+/* Linhas */
+.dre-row {
+  transition: background .1s;
+}
+
+.dre-row:hover {
+  background: var(--row-hover) !important;
+}
+
+/* Linha de seção */
+.dre-section-row td,
+.dre-section-row .sticky-col {
+  background: var(--section-bg) !important;
+  color: var(--section-fg) !important;
+  font-weight: 700;
+  font-size: .79rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  padding: .5rem .5rem;
+  cursor: pointer;
+  border-color: rgba(255,255,255,.1) !important;
+}
+
+.dre-section-row:hover td,
+.dre-section-row:hover .sticky-col {
+  background: #3d5a80 !important;
+}
+
+.dre-section-row .dre-toggle-icon {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  transition: transform .2s;
+}
+
+/* Linha de subtotal */
+.dre-subtotal-row td,
+.dre-subtotal-row .sticky-col {
+  background: var(--subtotal-bg) !important;
+  color: var(--subtotal-fg) !important;
+  font-weight: 700;
+  border-top: 1px solid #c5cae9;
+  border-bottom: 1px solid #c5cae9;
+}
+
+/* Linha total (resultado líquido) */
+.dre-total-row td,
+.dre-total-row .sticky-col {
+  background: var(--total-bg) !important;
+  color: var(--total-fg) !important;
+  font-weight: 700;
+  font-size: .82rem;
+  border-top: 2px solid #0d47a1;
+}
+
+/* Linha de item */
+.dre-item-row .dre-label-cell {
+  padding-left: 1.5rem;
+}
+
+.dre-indent {
+  display: inline-block;
+  width: .5rem;
+}
+
+.dre-label-cell {
+  font-size: .8rem;
+}
+
+/* Valores */
+.val-negative {
+  color: var(--negative) !important;
+  font-weight: 500;
+}
+
+.val-positive {
+  color: var(--positive);
+}
+
+.dre-money.is-positive {
+  color: #15803d;
+}
+
+.dre-money.is-negative {
+  color: #c2410c;
+}
+
+.dre-zero {
+  color: #cbd5e1;
+  font-size: .75rem;
+}
+
+.dre-percent {
+  font-size: .6rem;
+  color: #94a3b8;
+  margin-top: .06rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Hidden rows */
+.dre-hidden,
+.dre-hidden-zero,
+.dre-filtered {
+  display: none !important;
+}
+
+/* Equals symbol */
+.dre-equals {
+  color: #9e9e9e;
+  font-size: .75rem;
+}
+
+/* ---- Preview DRE (import preview) ---- */
+.dre-section-row td { font-size: .78rem; padding: .3rem .5rem; }
+
+/* ---- Responsive ---- */
+@media (max-width: 768px) {
+  .sticky-col { min-width: 160px; max-width: 160px; }
+  .kpi-value  { font-size: 1rem; }
+}
+
+/* ---- Scrollbar customizada para a tabela DRE ---- */
+.dre-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.dre-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+.dre-scroll::-webkit-scrollbar-thumb { background: #bbb; border-radius: 4px; }
+.dre-scroll::-webkit-scrollbar-thumb:hover { background: #888; }
+
+/* ---- Badges customizados ---- */
+.badge.bg-success-subtle { background-color: #d1e7dd !important; }
+.badge.bg-danger-subtle  { background-color: #f8d7da !important; }
+.badge.bg-warning-subtle { background-color: #fff3cd !important; }
+.badge.bg-primary-subtle { background-color: #cfe2ff !important; }
+
+/* ---- Table geral ---- */
+.table > tbody > tr > td,
+.table > thead > tr > th {
+  vertical-align: middle;
+}
+
+/* ---- DRE analitica por balancete ---- */
+.dre-page {
+  flex: 1 1 auto;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dre-page .card {
+  border-radius: 8px;
+}
+
+.dre-summary-card {
+  border-left: 3px solid #1e3a5f;
+}
+
+.dre-report-card {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dre-report-card .card-body {
+  padding: 0;
+}
+
+.dre-report-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 58px;
+}
+
+.dre-tools {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.dre-tools #treeSearch {
+  width: 280px;
+  max-width: 42vw;
+}
+
+.dre-report-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: auto;
+  background: #fff;
+  position: relative;
+}
+
+.dre-report-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: .82rem;
+  width: 100%;
+  min-width: max-content;
+  table-layout: auto;
+}
+
+.dre-report-table.show-detail-cols {
+  min-width: max-content;
+}
+
+.dre-report-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #f8fafc;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 500;
+  font-size: .78rem;
+  letter-spacing: .04em;
+  white-space: nowrap;
+  padding: .48rem .5rem;
+}
+
+.dre-report-scroll.is-scrolled-y .dre-report-table thead th {
+  box-shadow: 0 8px 14px -14px rgba(15,23,42,.55);
+}
+
+.dre-report-table tbody td {
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+  padding: .34rem .5rem;
+  white-space: nowrap;
+}
+
+.dre-report-table tbody tr:hover td {
+  background: #f8fbff;
+}
+
+.dre-sticky {
+  position: sticky;
+  z-index: 4;
+  background: #f3f7fb !important;
+}
+
+.dre-report-table thead .dre-sticky {
+  z-index: 8;
+  background: #e8f0f8 !important;
+}
+
+.dre-code-col {
+  left: 0;
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+}
+
+.dre-desc-col {
+  left: 80px;
+  width: 380px;
+  min-width: 380px;
+  max-width: 380px;
+  border-right: 1px solid #bfd3e8;
+  box-shadow: 3px 0 8px rgba(15,23,42,.08);
+}
+
+.dre-report-scroll.is-scrolled-x .dre-desc-col {
+  background: #edf5fc !important;
+  border-right-color: #4a90d9;
+  box-shadow:
+    12px 0 18px -12px rgba(15,23,42,.8),
+    inset -2px 0 0 rgba(30,58,95,.22);
+}
+
+.dre-money-col {
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  line-height: 1.15;
+}
+
+.dre-month-col {
+  width: 130px;
+  min-width: 130px;
+  max-width: 130px;
+  line-height: 1.15;
+}
+
+.dre-detail-col {
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
+}
+
+.dre-label {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  padding-left: calc(var(--level) * 22px);
+  min-width: 0;
+}
+
+.dre-label-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dre-toggle {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  flex: 0 0 18px;
+  opacity: .75;
+  transition: opacity .15s;
+}
+
+.dre-toggle i {
+  transition: transform .2s ease;
+  font-size: .7rem;
+}
+
+.dre-tree-row.is-collapsed .dre-toggle i {
+  transform: rotate(-90deg);
+}
+
+.dre-toggle:hover {
+  opacity: 1;
+  background: rgba(0,0,0,.08);
+}
+
+.dre-tree-row[data-level="0"] .dre-toggle:hover {
+  background: rgba(30,58,95,.1);
+}
+
+.dre-leaf {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+
+/* ============================================================
+   HIERARQUIA DRE — ultra minimalista
+   Apenas nível 0 com fundo escuro; todo o resto é branco.
+   Hierarquia por: indent + tipografia (caps / bold / semibold).
+   ============================================================ */
+
+.dre-row-section,
+.dre-row-group {
+  cursor: pointer;
+}
+
+/* --- Nível 0: azul bem clarinho, CAPS bold --- */
+.dre-tree-row[data-level="0"] td,
+.dre-tree-row[data-level="0"] .dre-sticky {
+  background: #e8f4fd !important;
+  color: #1e3a5f !important;
+  font-weight: 700;
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  border-bottom: 1px solid #cfe6f7 !important;
+  padding-top: .46rem;
+  padding-bottom: .46rem;
+}
+.dre-tree-row[data-level="0"] .dre-sticky  { border-left: 3px solid #7bb3dd !important; }
+.dre-tree-row[data-level="0"] code         { color: #5a7d9a; font-size: .75rem; }
+.dre-tree-row[data-level="0"]:hover td,
+.dre-tree-row[data-level="0"]:hover .dre-sticky { background: #d6ebfa !important; }
+.dre-tree-row[data-level="0"] .dre-money.is-positive { color: #15803d !important; }
+.dre-tree-row[data-level="0"] .dre-money.is-negative { color: #c2410c !important; }
+.dre-tree-row[data-level="0"] .dre-zero              { color: #94a3b8 !important; }
+
+/* --- Nível 1: branco, CAPS bold, separador entre seções --- */
+.dre-tree-row[data-level="1"] td,
+.dre-tree-row[data-level="1"] .dre-sticky {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  font-weight: 700;
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  border-bottom: 1px solid #f1f5f9 !important;
+  border-top: 1px solid #e2e8f0 !important;
+  padding-top: .38rem;
+  padding-bottom: .38rem;
+}
+.dre-tree-row[data-level="1"] .dre-sticky  { border-left: 3px solid #94a3b8 !important; }
+.dre-tree-row[data-level="1"] code         { color: #64748b; font-size: .75rem; }
+.dre-tree-row[data-level="1"]:hover td,
+.dre-tree-row[data-level="1"]:hover .dre-sticky { background: #f8fafc !important; }
+
+/* --- Nível 2: branco, bold, sem CAPS --- */
+.dre-tree-row[data-level="2"][data-group="1"] td,
+.dre-tree-row[data-level="2"][data-group="1"] .dre-sticky {
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-weight: 600;
+  font-size: .8rem;
+  border-bottom: 1px solid #f8fafc !important;
+}
+.dre-tree-row[data-level="2"][data-group="1"] .dre-sticky { border-left: 3px solid #cbd5e1 !important; }
+.dre-tree-row[data-level="2"][data-group="1"] code         { color: #94a3b8; font-size: .75rem; }
+.dre-tree-row[data-level="2"][data-group="1"]:hover td,
+.dre-tree-row[data-level="2"][data-group="1"]:hover .dre-sticky { background: #f8fafc !important; }
+
+/* --- Nível 3+: branco, semi-bold --- */
+.dre-tree-row[data-level="3"][data-group="1"] td,
+.dre-tree-row[data-level="3"][data-group="1"] .dre-sticky,
+.dre-tree-row[data-level="4"][data-group="1"] td,
+.dre-tree-row[data-level="4"][data-group="1"] .dre-sticky,
+.dre-tree-row[data-level="5"][data-group="1"] td,
+.dre-tree-row[data-level="5"][data-group="1"] .dre-sticky {
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-weight: 500;
+  font-size: .8rem;
+  border-bottom: 1px solid #f8fafc !important;
+}
+.dre-tree-row[data-level="3"][data-group="1"] .dre-sticky { border-left: 3px solid #e2e8f0 !important; }
+.dre-tree-row[data-level="4"][data-group="1"] .dre-sticky,
+.dre-tree-row[data-level="5"][data-group="1"] .dre-sticky { border-left: 3px solid #f1f5f9 !important; }
+
+/* --- Folha: branco, texto cinza, peso normal --- */
+.dre-row-item td,
+.dre-row-item .dre-sticky {
+  background: #ffffff !important;
+  color: #64748b !important;
+  font-weight: 400;
+  font-size: .8rem;
+  border-bottom: 1px solid #f8fafc !important;
+}
+.dre-row-item .dre-sticky { border-left: 3px solid transparent !important; }
+.dre-row-item:hover td,
+.dre-row-item:hover .dre-sticky { background: #f8fafc !important; }
+
+/* Diferenciar colunas fixas */
+.dre-tree-row[data-level="0"] .dre-sticky { background: #d8ebf8 !important; }
+.dre-tree-row[data-level="1"] .dre-sticky { background: #eef4fa !important; }
+.dre-tree-row[data-level="2"][data-group="1"] .dre-sticky,
+.dre-tree-row[data-level="3"][data-group="1"] .dre-sticky,
+.dre-tree-row[data-level="4"][data-group="1"] .dre-sticky,
+.dre-tree-row[data-level="5"][data-group="1"] .dre-sticky,
+.dre-row-item .dre-sticky {
+  background: #f3f7fb !important;
+}
+
+.dre-tree-row[data-level="0"]:hover .dre-sticky { background: #cce4f5 !important; }
+.dre-tree-row[data-level="1"]:hover .dre-sticky,
+.dre-tree-row[data-level="2"][data-group="1"]:hover .dre-sticky,
+.dre-tree-row[data-level="3"][data-group="1"]:hover .dre-sticky,
+.dre-tree-row[data-level="4"][data-group="1"]:hover .dre-sticky,
+.dre-tree-row[data-level="5"][data-group="1"]:hover .dre-sticky,
+.dre-row-item:hover .dre-sticky {
+  background: #e8f0f8 !important;
+}
+
+/* Ocultar colunas de detalhe (Débito/Crédito) por padrão */
+.dre-report-table.hide-detail-cols .dre-detail-col {
+  display: none;
+}
+
+/* Estado ativo dos botões */
+#toggleZeros.active,
+#toggleDetails.active {
+  background: #334155;
+  color: #fff;
+  border-color: #334155;
+}
+
+/* Hide-zeros: esconde linhas onde todos os valores são zero/traço */
+.dre-report-table.hide-zeros tr.dre-row-item:not(.has-nonzero) {
+  display: none;
+}
+
+.dre-report-table tbody tr.is-marked td,
+.dre-report-table tbody tr.is-marked .dre-sticky {
+  background: #fff4c2 !important;
+  color: #1f2937 !important;
+}
+
+.dre-report-table tbody tr.is-marked .dre-desc-col {
+  border-right-color: #d6c37a;
+  box-shadow: 3px 0 8px rgba(15,23,42,.08);
+}
+
+.dre-report-table tbody tr.is-marked:hover td,
+.dre-report-table tbody tr.is-marked:hover .dre-sticky {
+  background: #fff4c2 !important;
+}
+
+.dre-tree-row.is-collapsed .dre-desc-col::after {
+  content: var(--children-count);
+  float: right;
+  min-width: 22px;
+  height: 18px;
+  line-height: 18px;
+  margin-left: .5rem;
+  border-radius: 999px;
+  background: rgba(15,23,42,.12);
+  color: inherit;
+  text-align: center;
+  font-size: .68rem;
+}
+
+.dre-report-scroll::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.dre-report-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.dre-report-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 8px;
+  border: 2px solid #f1f5f9;
+}
+
+@media (max-width: 768px) {
+  .dre-report-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dre-tools {
+    width: 100%;
+  }
+
+  .dre-tools #treeSearch {
+    width: 100%;
+    max-width: none;
+  }
+
+  .dre-code-col {
+    width: 65px;
+    min-width: 65px;
+    max-width: 65px;
+  }
+
+  .dre-desc-col {
+    left: 65px;
+    width: 300px;
+    min-width: 300px;
+    max-width: 300px;
+  }
+
+  .dre-money-col {
+    min-width: 100px;
+  }
+}
