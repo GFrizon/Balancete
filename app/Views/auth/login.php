@@ -50,6 +50,10 @@
           </button>
         </div>
       </div>
+      <div class="form-check mb-4">
+        <input class="form-check-input" type="checkbox" name="remember_me" value="1" id="rememberMe">
+        <label class="form-check-label text-muted" for="rememberMe">Manter conectado neste dispositivo</label>
+      </div>
       <button type="submit" class="btn btn-primary btn-lg w-100">
         <i class="bi bi-box-arrow-in-right me-2"></i>Entrar
       </button>

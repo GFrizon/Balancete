@@ -25,6 +25,10 @@ function session_start_safe(): void
             'samesite' => 'Lax',
         ]);
         session_start();
+
+        if (empty($_SESSION['user_id'])) {
+            remember_login_from_cookie();
+        }
     }
 }
 
@@ -35,7 +39,8 @@ function auth_check(): void
         exit;
     }
 
-    if (!empty($_SESSION['last_activity']) && time() - (int)$_SESSION['last_activity'] > 1800) {
+    $rememberedSession = !empty($_SESSION['remembered']);
+    if (!$rememberedSession && !empty($_SESSION['last_activity']) && time() - (int)$_SESSION['last_activity'] > 1800) {
         logout_session();
         session_start_safe();
         flash('warning', 'Sessao expirada por inatividade. Entre novamente.');
@@ -129,6 +134,8 @@ function csrf_rotate(): void
 
 function logout_session(): void
 {
+    remember_forget_current();
+
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
         $params = session_get_cookie_params();
@@ -138,6 +145,130 @@ function logout_session(): void
         );
     }
     session_destroy();
+}
+
+function remember_cookie_params(): array
+{
+    $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+        || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+
+    return [
+        'expires' => time() + 60 * 60 * 24 * 30,
+        'path' => '/',
+        'secure' => $isHttps,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ];
+}
+
+function remember_ensure_table(): void
+{
+    static $done = false;
+    if ($done) {
+        return;
+    }
+
+    db()->exec(
+        "CREATE TABLE IF NOT EXISTS remember_tokens (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id INT UNSIGNED NOT NULL,
+            selector CHAR(24) NOT NULL,
+            token_hash CHAR(64) NOT NULL,
+            expires_at DATETIME NOT NULL,
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_used_at DATETIME NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_remember_selector (selector),
+            KEY idx_remember_user (user_id),
+            KEY idx_remember_expires (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+    );
+
+    $done = true;
+}
+
+function remember_create(int $userId): void
+{
+    remember_ensure_table();
+
+    $selector = bin2hex(random_bytes(12));
+    $validator = bin2hex(random_bytes(32));
+    $hash = hash('sha256', $validator);
+
+    $stmt = db()->prepare(
+        'INSERT INTO remember_tokens (user_id, selector, token_hash, expires_at)
+         VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))'
+    );
+    $stmt->execute([$userId, $selector, $hash]);
+
+    setcookie('remember_login', $selector . ':' . $validator, remember_cookie_params());
+    $_SESSION['remembered'] = true;
+}
+
+function remember_login_from_cookie(): void
+{
+    $cookie = $_COOKIE['remember_login'] ?? '';
+    if ($cookie === '' || !str_contains($cookie, ':')) {
+        return;
+    }
+
+    remember_ensure_table();
+    [$selector, $validator] = explode(':', $cookie, 2);
+    if (!preg_match('/^[a-f0-9]{24}$/', $selector) || !preg_match('/^[a-f0-9]{64}$/', $validator)) {
+        remember_clear_cookie();
+        return;
+    }
+
+    $stmt = db()->prepare(
+        'SELECT rt.id, rt.user_id, rt.token_hash, u.name, u.role, u.active
+           FROM remember_tokens rt
+           JOIN users u ON u.id = rt.user_id
+          WHERE rt.selector = ?
+            AND rt.expires_at > NOW()
+          LIMIT 1'
+    );
+    $stmt->execute([$selector]);
+    $row = $stmt->fetch();
+
+    if (!$row || !(int)$row['active'] || !hash_equals((string)$row['token_hash'], hash('sha256', $validator))) {
+        remember_clear_cookie();
+        return;
+    }
+
+    session_regenerate_id(true);
+    $_SESSION['user_id'] = (int)$row['user_id'];
+    $_SESSION['user_name'] = $row['name'];
+    $_SESSION['user_role'] = $row['role'];
+    $_SESSION['remembered'] = true;
+    $_SESSION['last_activity'] = time();
+    $_SESSION['user_agent_hash'] = hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? '');
+
+    db()->prepare('UPDATE remember_tokens SET last_used_at = NOW() WHERE id = ?')->execute([(int)$row['id']]);
+}
+
+function remember_forget_current(): void
+{
+    $cookie = $_COOKIE['remember_login'] ?? '';
+    if ($cookie !== '' && str_contains($cookie, ':')) {
+        [$selector] = explode(':', $cookie, 2);
+        if (preg_match('/^[a-f0-9]{24}$/', $selector)) {
+            remember_ensure_table();
+            db()->prepare('DELETE FROM remember_tokens WHERE selector = ?')->execute([$selector]);
+        }
+    }
+
+    remember_clear_cookie();
+}
+
+function remember_clear_cookie(): void
+{
+    setcookie('remember_login', '', [
+        'expires' => time() - 3600,
+        'path' => '/',
+        'secure' => remember_cookie_params()['secure'],
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
 }
 
 function security_headers(): void

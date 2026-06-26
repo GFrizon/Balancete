@@ -59,6 +59,10 @@ class AuthController
         $_SESSION['last_activity'] = time();
         $_SESSION['user_agent_hash'] = hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? '');
 
+        if (!empty($_POST['remember_me'])) {
+            remember_create((int)$user['id']);
+        }
+
         audit('login', 'user', (int)$user['id']);
 
         if ($user['force_change_password']) {
