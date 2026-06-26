@@ -92,16 +92,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   </div>
   <?php else: ?>
 
-  <?php
-    $totalDebit = 0.0;
-    $totalCredit = 0.0;
-    $totalAcumulado = 0.0;
-    foreach ($matrixRows as $r) {
-      $totalDebit += (float)($r['debit_total'] ?? 0);
-      $totalCredit += (float)($r['credit_total'] ?? 0);
-      $totalAcumulado += (float)($r['acumulado'] ?? 0);
-    }
-  ?>
+  <?php if (false): ?>
   <div class="row g-2 mb-3">
     <div class="col-md-3">
       <div class="card shadow-sm h-100 dre-summary-card">
@@ -136,6 +127,8 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
       </div>
     </div>
   </div>
+
+  <?php endif; ?>
 
   <div class="card shadow-sm dre-report-card">
     <div class="card-header dre-report-toolbar">
