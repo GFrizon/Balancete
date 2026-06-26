@@ -55,11 +55,13 @@
       </button>
     </form>
 
-    <div class="text-center mt-4">
-      <small class="text-muted">
-        Primeiro acesso? <a href="<?= url('setup') ?>">Configure o administrador</a>
-      </small>
-    </div>
+    <?php if (!empty($canSetup)): ?>
+      <div class="text-center mt-4">
+        <small class="text-muted">
+          Primeiro acesso? <a href="<?= url('setup') ?>">Configure o administrador</a>
+        </small>
+      </div>
+    <?php endif; ?>
   </div>
 </div>
 

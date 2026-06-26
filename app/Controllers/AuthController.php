@@ -8,7 +8,9 @@ class AuthController
         if (is_logged_in()) {
             redirect('dashboard');
         }
-        view('auth/login');
+
+        $canSetup = (int)db()->query('SELECT COUNT(*) FROM users')->fetchColumn() === 0;
+        view('auth/login', compact('canSetup'));
     }
 
     public function doLogin(): void
