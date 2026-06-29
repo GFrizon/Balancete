@@ -161,45 +161,59 @@ function remember_cookie_params(): array
     ];
 }
 
-function remember_ensure_table(): void
+function remember_ensure_table(): bool
 {
     static $done = false;
     if ($done) {
-        return;
+        return true;
     }
 
-    db()->exec(
-        "CREATE TABLE IF NOT EXISTS remember_tokens (
-            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-            user_id INT UNSIGNED NOT NULL,
-            selector CHAR(24) NOT NULL,
-            token_hash CHAR(64) NOT NULL,
-            expires_at DATETIME NOT NULL,
-            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            last_used_at DATETIME NULL,
-            PRIMARY KEY (id),
-            UNIQUE KEY uq_remember_selector (selector),
-            KEY idx_remember_user (user_id),
-            KEY idx_remember_expires (expires_at)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
-    );
+    try {
+        db()->exec(
+            "CREATE TABLE IF NOT EXISTS remember_tokens (
+                id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                user_id INT UNSIGNED NOT NULL,
+                selector CHAR(24) NOT NULL,
+                token_hash CHAR(64) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_used_at DATETIME NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_remember_selector (selector),
+                KEY idx_remember_user (user_id),
+                KEY idx_remember_expires (expires_at),
+                CONSTRAINT fk_remember_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+    } catch (Throwable) {
+        return false;
+    }
 
     $done = true;
+    return true;
 }
 
 function remember_create(int $userId): void
 {
-    remember_ensure_table();
+    if (!remember_ensure_table()) {
+        remember_clear_cookie();
+        return;
+    }
 
     $selector = bin2hex(random_bytes(12));
     $validator = bin2hex(random_bytes(32));
     $hash = hash('sha256', $validator);
 
-    $stmt = db()->prepare(
-        'INSERT INTO remember_tokens (user_id, selector, token_hash, expires_at)
-         VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))'
-    );
-    $stmt->execute([$userId, $selector, $hash]);
+    try {
+        $stmt = db()->prepare(
+            'INSERT INTO remember_tokens (user_id, selector, token_hash, expires_at)
+             VALUES (?, ?, ?, DATE_ADD(NOW(), INTERVAL 30 DAY))'
+        );
+        $stmt->execute([$userId, $selector, $hash]);
+    } catch (Throwable) {
+        remember_clear_cookie();
+        return;
+    }
 
     setcookie('remember_login', $selector . ':' . $validator, remember_cookie_params());
     $_SESSION['remembered'] = true;
@@ -212,23 +226,32 @@ function remember_login_from_cookie(): void
         return;
     }
 
-    remember_ensure_table();
+    if (!remember_ensure_table()) {
+        remember_clear_cookie();
+        return;
+    }
+
     [$selector, $validator] = explode(':', $cookie, 2);
     if (!preg_match('/^[a-f0-9]{24}$/', $selector) || !preg_match('/^[a-f0-9]{64}$/', $validator)) {
         remember_clear_cookie();
         return;
     }
 
-    $stmt = db()->prepare(
-        'SELECT rt.id, rt.user_id, rt.token_hash, u.name, u.role, u.active
-           FROM remember_tokens rt
-           JOIN users u ON u.id = rt.user_id
-          WHERE rt.selector = ?
-            AND rt.expires_at > NOW()
-          LIMIT 1'
-    );
-    $stmt->execute([$selector]);
-    $row = $stmt->fetch();
+    try {
+        $stmt = db()->prepare(
+            'SELECT rt.id, rt.user_id, rt.token_hash, u.name, u.role, u.active
+               FROM remember_tokens rt
+               JOIN users u ON u.id = rt.user_id
+              WHERE rt.selector = ?
+                AND rt.expires_at > NOW()
+              LIMIT 1'
+        );
+        $stmt->execute([$selector]);
+        $row = $stmt->fetch();
+    } catch (Throwable) {
+        remember_clear_cookie();
+        return;
+    }
 
     if (!$row || !(int)$row['active'] || !hash_equals((string)$row['token_hash'], hash('sha256', $validator))) {
         remember_clear_cookie();
@@ -243,7 +266,11 @@ function remember_login_from_cookie(): void
     $_SESSION['last_activity'] = time();
     $_SESSION['user_agent_hash'] = hash('sha256', $_SERVER['HTTP_USER_AGENT'] ?? '');
 
-    db()->prepare('UPDATE remember_tokens SET last_used_at = NOW() WHERE id = ?')->execute([(int)$row['id']]);
+    try {
+        db()->prepare('UPDATE remember_tokens SET last_used_at = NOW() WHERE id = ?')->execute([(int)$row['id']]);
+    } catch (Throwable) {
+        // Login by cookie already succeeded; failing to stamp usage should not log the user out.
+    }
 }
 
 function remember_forget_current(): void
@@ -252,8 +279,13 @@ function remember_forget_current(): void
     if ($cookie !== '' && str_contains($cookie, ':')) {
         [$selector] = explode(':', $cookie, 2);
         if (preg_match('/^[a-f0-9]{24}$/', $selector)) {
-            remember_ensure_table();
-            db()->prepare('DELETE FROM remember_tokens WHERE selector = ?')->execute([$selector]);
+            try {
+                if (remember_ensure_table()) {
+                    db()->prepare('DELETE FROM remember_tokens WHERE selector = ?')->execute([$selector]);
+                }
+            } catch (Throwable) {
+                // Ignore remember-token cleanup failures during logout.
+            }
         }
     }
 
