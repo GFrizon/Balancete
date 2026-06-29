@@ -165,6 +165,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             <th class="text-end dre-money-col dre-month-col"><?= e($month['label']) ?></th>
             <?php endforeach; ?>
             <th class="text-end dre-money-col">Acumulado</th>
+            <th class="text-end dre-money-col">Media</th>
           </tr>
         </thead>
         <tbody>
@@ -176,6 +177,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             $debit = (float)($row['debit_total'] ?? 0);
             $credit = (float)($row['credit_total'] ?? 0);
             $acumulado = (float)($row['acumulado'] ?? 0);
+            $media = (float)($row['media'] ?? 0);
             $rowKind = !empty($row['is_section']) ? 'section' : ($hasChildren ? 'group' : 'item');
             $visualKind = $rowKind;
             if ($rowKind === 'group' && $indent >= 3) {
@@ -229,6 +231,9 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             <?php endforeach; ?>
             <td class="text-end dre-money <?= $acumulado < 0 ? 'is-negative' : ($acumulado > 0 ? 'is-positive' : '') ?>">
               <?= $formatSigned($acumulado) ?>
+            </td>
+            <td class="text-end dre-money <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>">
+              <?= $formatSigned($media) ?>
             </td>
           </tr>
           <?php endforeach; ?>

@@ -219,6 +219,8 @@ class DreController
             }
         }
 
+        $visibleMonthCount = max(1, count($monthKeys));
+
         foreach ($matrix as &$row) {
             $sum = 0.0;
             $count = 0;
@@ -239,7 +241,7 @@ class DreController
             }
             $row['acumulado'] = $sum;
             $row['count_nonzero'] = $count;
-            $row['media'] = $count > 0 ? $sum / $count : 0.0;
+            $row['media'] = $sum / $visibleMonthCount;
             $row['movimento'] = $sum;
         }
         unset($row);
