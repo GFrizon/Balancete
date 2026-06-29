@@ -164,8 +164,8 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             <?php foreach ($months as $month): ?>
             <th class="text-end dre-money-col dre-month-col"><?= e($month['label']) ?></th>
             <?php endforeach; ?>
-            <th class="text-end dre-money-col">Acumulado</th>
             <th class="text-end dre-money-col">Media</th>
+            <th class="text-end dre-money-col">Acumulado</th>
           </tr>
         </thead>
         <tbody>
@@ -229,11 +229,11 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
               <?php endif; ?>
             </td>
             <?php endforeach; ?>
-            <td class="text-end dre-money <?= $acumulado < 0 ? 'is-negative' : ($acumulado > 0 ? 'is-positive' : '') ?>">
-              <?= $formatSigned($acumulado) ?>
-            </td>
             <td class="text-end dre-money <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>">
               <?= $formatSigned($media) ?>
+            </td>
+            <td class="text-end dre-money <?= $acumulado < 0 ? 'is-negative' : ($acumulado > 0 ? 'is-positive' : '') ?>">
+              <?= $formatSigned($acumulado) ?>
             </td>
           </tr>
           <?php endforeach; ?>
