@@ -169,7 +169,7 @@ class BalanceteParser
          * Regex para linha de dados:
          *   ^(\s{1,12})    — indentação leading
          *   (\d{1,6})      — código numérico
-         *   \s+            — separador
+         *   (\s+)          — separador/indentação visual antes da descrição
          *   (.+?)          — descrição (lazy)
          *   \s{2,}         — múltiplos espaços
          *   (valor)\s+     — débito
@@ -177,7 +177,7 @@ class BalanceteParser
          *   (valor)        — movimento
          *   (DB|CR)?       — tipo movimento
          */
-        $regex = '/^(\s{0,15})(\d{1,6})\s{1,20}(.+?)\s{2,}(\d{1,3}(?:\.\d{3})*,\d{2}|0,00)\s+(\d{1,3}(?:\.\d{3})*,\d{2}|0,00)\s{1,}(\d{1,3}(?:\.\d{3})*,\d{2}|0,00)(DB|CR)?\s*$/';
+        $regex = '/^(\s{0,15})(\d{1,6})(\s{1,20})(.+?)\s{2,}(\d{1,3}(?:\.\d{3})*,\d{2}|0,00)\s+(\d{1,3}(?:\.\d{3})*,\d{2}|0,00)\s{1,}(\d{1,3}(?:\.\d{3})*,\d{2}|0,00)(DB|CR)?\s*$/';
 
         // Linhas a ignorar (cabeçalhos repetidos, separadores)
         $skipPatterns = [
@@ -207,13 +207,13 @@ class BalanceteParser
                 continue;
             }
 
-            $indent      = strlen($m[1]);
+            $indent      = strlen($m[3]);
             $code        = $m[2];
-            $description = trim($m[3]);
-            $debit       = $this->parseValue($m[4]);
-            $credit      = $this->parseValue($m[5]);
-            $movement    = $this->parseValue($m[6]);
-            $mvType      = $m[7] ?? '';
+            $description = trim($m[4]);
+            $debit       = $this->parseValue($m[5]);
+            $credit      = $this->parseValue($m[6]);
+            $movement    = $this->parseValue($m[7]);
+            $mvType      = $m[8] ?? '';
 
             // Detecta sub-conta analítica: descrição começa com padrão "NNN texto"
             // onde NNN é código de unidade (ex: "001 Receita Mercadoria Industria")
@@ -223,7 +223,7 @@ class BalanceteParser
                 'line_number'         => $lineNumber,
                 'account_code'        => $code,
                 'account_description' => $description,
-                'indentation_level'   => (int)floor($indent / 2),
+                'indentation_level'   => $this->indentationFromCodeGap($indent),
                 'is_analytical'       => $isAnalytical,
                 'movement_value'      => $movement,
                 'movement_type'       => $mvType,
@@ -246,6 +246,11 @@ class BalanceteParser
         $clean = str_replace('.', '', $value); // remove separadores de milhar
         $clean = str_replace(',', '.', $clean); // vírgula → ponto decimal
         return (float)$clean;
+    }
+
+    private function indentationFromCodeGap(int $gap): int
+    {
+        return max(0, (int)floor(($gap - 5) / 2));
     }
 
     // -------------------------------------------------------

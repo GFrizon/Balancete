@@ -169,6 +169,8 @@ class DreController
                     'is_analytical' => (int)$row['is_analytical'],
                     'has_children' => !empty($row['has_children']),
                     'line_number' => (int)$row['line_number'],
+                    'sort_year' => (int)$row['year'],
+                    'sort_month' => (int)$row['month'],
                     'values' => array_fill_keys($monthKeys, 0.0),
                     'types' => array_fill_keys($monthKeys, ''),
                     'debit_total' => 0.0,
@@ -178,6 +180,14 @@ class DreController
                     'media' => 0.0,
                     'count_nonzero' => 0,
                 ];
+            } else {
+                $currentPeriod = [(int)$matrix[$key]['sort_year'], (int)$matrix[$key]['sort_month']];
+                $rowPeriod = [(int)$row['year'], (int)$row['month']];
+                if ($rowPeriod >= $currentPeriod) {
+                    $matrix[$key]['line_number'] = (int)$row['line_number'];
+                    $matrix[$key]['sort_year'] = (int)$row['year'];
+                    $matrix[$key]['sort_month'] = (int)$row['month'];
+                }
             }
 
             $amount = (float)$row['signed_movement'];
@@ -234,7 +244,22 @@ class DreController
         }
         unset($row);
 
-        return $this->attachHierarchy(array_values($matrix));
+        $matrixRows = array_values($matrix);
+        usort($matrixRows, static function (array $a, array $b): int {
+            return [
+                (int)$a['line_number'],
+                (int)$a['indentation_level'],
+                (string)$a['account_code'],
+                (string)$a['account_description'],
+            ] <=> [
+                (int)$b['line_number'],
+                (int)$b['indentation_level'],
+                (string)$b['account_code'],
+                (string)$b['account_description'],
+            ];
+        });
+
+        return $this->attachHierarchy($matrixRows);
     }
 
     private function attachHierarchy(array $rows): array
