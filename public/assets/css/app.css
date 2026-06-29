@@ -914,6 +914,80 @@ body {
 }
 
 /* Ocultar colunas de detalhe (Débito/Crédito) por padrão */
+/* Marcação visual baseada no tipo real da linha, não apenas no nível. */
+.dre-tree-row[data-kind="section"] td,
+.dre-tree-row[data-kind="section"] .dre-sticky {
+  background: #e8f4fd !important;
+  color: #1e3a5f !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  border-bottom: 1px solid #cfe6f7 !important;
+}
+
+.dre-tree-row[data-kind="section"] .dre-sticky {
+  background: #d8ebf8 !important;
+  border-left: 3px solid #7bb3dd !important;
+}
+
+.dre-tree-row[data-kind="group"] td,
+.dre-tree-row[data-kind="group"] .dre-sticky {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  border-top: 1px solid #e2e8f0 !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+.dre-tree-row[data-kind="group"] .dre-sticky {
+  background: #eef4fa !important;
+  border-left: 3px solid #94a3b8 !important;
+}
+
+.dre-tree-row[data-kind="account-group"] td,
+.dre-tree-row[data-kind="account-group"] .dre-sticky {
+  background: #ffffff !important;
+  color: #475569 !important;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  border-top: 0 !important;
+  border-bottom: 1px solid #f8fafc !important;
+}
+
+.dre-tree-row[data-kind="account-group"] .dre-sticky {
+  background: #f3f7fb !important;
+  border-left: 3px solid #e2e8f0 !important;
+}
+
+.dre-tree-row[data-kind="analytical"] td,
+.dre-tree-row[data-kind="analytical"] .dre-sticky {
+  background: #ffffff !important;
+  color: #64748b !important;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  border-top: 0 !important;
+  border-bottom: 1px solid #f8fafc !important;
+}
+
+.dre-tree-row[data-kind="analytical"] .dre-sticky {
+  background: #f3f7fb !important;
+  border-left: 3px solid transparent !important;
+}
+
+.dre-tree-row[data-kind="section"]:hover td,
+.dre-tree-row[data-kind="section"]:hover .dre-sticky { background: #d6ebfa !important; }
+
+.dre-tree-row[data-kind="group"]:hover td,
+.dre-tree-row[data-kind="group"]:hover .dre-sticky,
+.dre-tree-row[data-kind="account-group"]:hover td,
+.dre-tree-row[data-kind="account-group"]:hover .dre-sticky,
+.dre-tree-row[data-kind="analytical"]:hover td,
+.dre-tree-row[data-kind="analytical"]:hover .dre-sticky { background: #f8fafc !important; }
+
 .dre-report-table.hide-detail-cols .dre-detail-col {
   display: none;
 }

@@ -177,6 +177,12 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             $credit = (float)($row['credit_total'] ?? 0);
             $acumulado = (float)($row['acumulado'] ?? 0);
             $rowKind = !empty($row['is_section']) ? 'section' : ($hasChildren ? 'group' : 'item');
+            $visualKind = $rowKind;
+            if ($rowKind === 'group' && $indent >= 3) {
+                $visualKind = 'account-group';
+            } elseif ($rowKind === 'item' && !empty($row['is_analytical'])) {
+                $visualKind = 'analytical';
+            }
             $hasNonzero = !$hasChildren && (abs($acumulado) >= 0.005 || abs($debit) >= 0.005 || abs($credit) >= 0.005);
           ?>
           <tr id="<?= e($row['row_uid']) ?>"
@@ -185,6 +191,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
               data-parent-id="<?= e($row['parent_uid']) ?>"
               data-level="<?= $indent ?>"
               data-group="<?= $hasChildren ? '1' : '0' ?>"
+              data-kind="<?= e($visualKind) ?>"
               data-search="<?= e(mb_strtolower($row['account_code'] . ' ' . $row['account_description'])) ?>">
             <td class="dre-sticky dre-code-col"><code><?= e($row['account_code']) ?></code></td>
             <td class="dre-sticky dre-desc-col">
