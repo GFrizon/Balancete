@@ -1011,6 +1011,12 @@ body {
   color: #1f2937 !important;
 }
 
+.dre-report-table tbody tr.is-marked[data-kind] td,
+.dre-report-table tbody tr.is-marked[data-kind] .dre-sticky {
+  background: #fff4c2 !important;
+  color: #1f2937 !important;
+}
+
 .dre-report-table tbody tr.is-marked .dre-desc-col {
   border-right-color: #d6c37a;
   box-shadow: 3px 0 8px rgba(15,23,42,.08);
@@ -1033,6 +1039,11 @@ body {
   color: inherit;
   text-align: center;
   font-size: .68rem;
+}
+
+.dre-report-table tbody tr.is-marked.is-collapsed .dre-desc-col::after {
+  background: #d6c37a;
+  color: #1f2937;
 }
 
 .dre-report-scroll::-webkit-scrollbar {
