@@ -1027,25 +1027,6 @@ body {
   background: #fff4c2 !important;
 }
 
-.dre-tree-row.is-collapsed .dre-desc-col::after {
-  content: var(--children-count);
-  float: right;
-  min-width: 22px;
-  height: 18px;
-  line-height: 18px;
-  margin-left: .5rem;
-  border-radius: 999px;
-  background: rgba(15,23,42,.12);
-  color: inherit;
-  text-align: center;
-  font-size: .68rem;
-}
-
-.dre-report-table tbody tr.is-marked.is-collapsed .dre-desc-col::after {
-  background: #d6c37a;
-  color: #1f2937;
-}
-
 .dre-report-scroll::-webkit-scrollbar {
   width: 10px;
   height: 10px;

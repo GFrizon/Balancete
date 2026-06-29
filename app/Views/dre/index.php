@@ -289,12 +289,6 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     return descendantsOf(row).some(child => child.dataset.search.includes(query));
   }
 
-  function updateCounts(row) {
-    if (row.dataset.group !== '1') return;
-    const total = descendantsOf(row).length;
-    row.style.setProperty('--children-count', `"${total}"`);
-  }
-
   function render() {
     const query = search ? search.value.trim().toLowerCase() : '';
     rows.forEach(row => {
@@ -310,7 +304,6 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     });
   }
 
-  rows.forEach(updateCounts);
 
   // Colapso padrão: nivels >= 3 começam fechados
   rows.filter(r => r.dataset.group === '1' && parseInt(r.dataset.level, 10) >= 3)
