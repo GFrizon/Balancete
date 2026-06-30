@@ -8,9 +8,8 @@ class DreController
         auth_check();
         $pdo = db();
 
-        $fCompany    = (int)($_GET['company_id'] ?? 0);
+        [$fCompany, $fGroup, $fCompanyFilter] = $this->selectedCompanyFilter();
         $fUnit       = (int)($_GET['unit_id'] ?? 0);
-        $fGroup      = (int)($_GET['group_id'] ?? 0);
         $fYear       = (int)($_GET['year'] ?? date('Y'));
 
         $monthStartSet = isset($_GET['month_start']) && $_GET['month_start'] !== '';
@@ -18,17 +17,8 @@ class DreController
         $fMonthStart   = $monthStartSet ? (int)$_GET['month_start'] : 0;
         $fMonthEnd     = $monthEndSet   ? (int)$_GET['month_end']   : 0;
 
-        $companies = $pdo->query('SELECT id, name FROM companies WHERE active=1 ORDER BY name')->fetchAll();
+        $companyOptions = $this->companyFilterOptions();
         $units     = $pdo->query('SELECT id, name, code, company_id FROM business_units WHERE active=1 ORDER BY code')->fetchAll();
-        $this->ensureUnitGroupTables();
-        $groups = $pdo->query(
-            "SELECT ug.id, ug.name, COUNT(ugi.business_unit_id) AS units_count
-               FROM unit_groups ug
-               JOIN unit_group_items ugi ON ugi.unit_group_id = ug.id
-              WHERE ug.active = 1
-              GROUP BY ug.id
-              ORDER BY ug.name"
-        )->fetchAll();
 
         $yearsAvailable = $pdo->query(
             "SELECT DISTINCT year FROM imports WHERE status='confirmed' ORDER BY year DESC"
@@ -55,8 +45,8 @@ class DreController
         $matrixRows = $this->buildMatrix($treeRows, $months, $fUnit === 0);
 
         view('dre/index', compact(
-            'companies', 'units', 'groups', 'yearsAvailable',
-            'fCompany', 'fUnit', 'fGroup', 'fYear', 'fMonthStart', 'fMonthEnd',
+            'companyOptions', 'units', 'yearsAvailable',
+            'fCompany', 'fCompanyFilter', 'fUnit', 'fGroup', 'fYear', 'fMonthStart', 'fMonthEnd',
             'imports', 'months', 'matrixRows'
         ));
     }
@@ -147,6 +137,79 @@ class DreController
         return $stmt->fetchAll();
     }
 
+    private function selectedCompanyFilter(): array
+    {
+        $filter = trim((string)($_GET['company_filter'] ?? ''));
+        $companyId = (int)($_GET['company_id'] ?? 0);
+        $groupId = (int)($_GET['group_id'] ?? 0);
+
+        if (preg_match('/^c:(\d+)$/', $filter, $matches)) {
+            $companyId = (int)$matches[1];
+            $groupId = 0;
+        } elseif (preg_match('/^g:(\d+)$/', $filter, $matches)) {
+            $companyId = 0;
+            $groupId = (int)$matches[1];
+        } elseif ($filter === 'all' || $filter === '') {
+            if ($groupId) {
+                $filter = 'g:' . $groupId;
+            } elseif ($companyId) {
+                $filter = 'c:' . $companyId;
+            } else {
+                $filter = '';
+            }
+        }
+
+        return [$companyId, $groupId, $filter];
+    }
+
+    private function companyFilterOptions(): array
+    {
+        $this->ensureUnitGroupTables();
+
+        $groups = db()->query(
+            "SELECT ug.id, ug.name, COUNT(ugi.business_unit_id) AS units_count
+               FROM unit_groups ug
+               JOIN unit_group_items ugi ON ugi.unit_group_id = ug.id
+              WHERE ug.active = 1
+              GROUP BY ug.id, ug.name
+              ORDER BY ug.name"
+        )->fetchAll();
+
+        $companies = db()->query(
+            "SELECT c.id, c.name,
+                    GROUP_CONCAT(CONCAT(bu.code, ' - ', bu.name) ORDER BY bu.code SEPARATOR ' / ') AS units_label
+               FROM companies c
+               LEFT JOIN business_units bu ON bu.company_id = c.id AND bu.active = 1
+              WHERE c.active = 1
+              GROUP BY c.id, c.name
+              ORDER BY c.name"
+        )->fetchAll();
+
+        $options = [];
+        foreach ($groups as $group) {
+            $options[] = [
+                'value' => 'g:' . (int)$group['id'],
+                'label' => (string)$group['name'] . ' (' . (int)$group['units_count'] . ')',
+                'kind' => 'group',
+            ];
+        }
+
+        foreach ($companies as $company) {
+            $label = (string)$company['name'];
+            if (!empty($company['units_label'])) {
+                $label .= ' - ' . (string)$company['units_label'];
+            }
+
+            $options[] = [
+                'value' => 'c:' . (int)$company['id'],
+                'label' => $label,
+                'kind' => 'company',
+            ];
+        }
+
+        return $options;
+    }
+
     private function selectedMonths(int $year, int $monthStart, int $monthEnd): array
     {
         $months = [];
@@ -180,6 +243,7 @@ class DreController
                 continue;
             }
 
+            $row['account_description'] = $this->cleanAccountDescription((string)$row['account_description']);
             $key = $this->rowKey($row);
             $monthKey = sprintf('%04d-%02d', (int)$row['year'], (int)$row['month']);
 
@@ -456,10 +520,31 @@ class DreController
     private function rowKey(array $row): string
     {
         return implode('|', [
-            (int)$row['indentation_level'],
+            (int)!empty($row['is_analytical']),
             (string)$row['account_code'],
-            mb_strtolower(trim((string)$row['account_description'])),
+            $this->normalizeKeyDescription((string)$row['account_description']),
         ]);
+    }
+
+    private function cleanAccountDescription(string $description): string
+    {
+        $description = trim(preg_replace('/\s+/', ' ', $description) ?? $description);
+        $money = '\d{1,3}(?:\.\d{3})*,\d{2}';
+
+        do {
+            $previous = $description;
+            $description = preg_replace('/\s+' . $money . '(?:DB|CR)?$/u', '', $description) ?? $description;
+            $description = trim($description);
+        } while ($description !== $previous);
+
+        return $description;
+    }
+
+    private function normalizeKeyDescription(string $description): string
+    {
+        $description = $this->cleanAccountDescription($description);
+        $description = mb_strtolower(trim($description), 'UTF-8');
+        return preg_replace('/\s+/', ' ', $description) ?? $description;
     }
 
     /**

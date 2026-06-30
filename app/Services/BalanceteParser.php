@@ -209,7 +209,7 @@ class BalanceteParser
 
             $indent      = strlen($m[3]);
             $code        = $m[2];
-            $description = trim($m[4]);
+            $description = $this->cleanDescription(trim($m[4]));
             $debit       = $this->parseValue($m[5]);
             $credit      = $this->parseValue($m[6]);
             $movement    = $this->parseValue($m[7]);
@@ -246,6 +246,20 @@ class BalanceteParser
         $clean = str_replace('.', '', $value); // remove separadores de milhar
         $clean = str_replace(',', '.', $clean); // vírgula → ponto decimal
         return (float)$clean;
+    }
+
+    private function cleanDescription(string $description): string
+    {
+        $description = trim(preg_replace('/\s+/', ' ', $description) ?? $description);
+        $money = '\d{1,3}(?:\.\d{3})*,\d{2}';
+
+        do {
+            $previous = $description;
+            $description = preg_replace('/\s+' . $money . '(?:DB|CR)?$/u', '', $description) ?? $description;
+            $description = trim($description);
+        } while ($description !== $previous);
+
+        return $description;
     }
 
     private function indentationFromCodeGap(int $gap): int

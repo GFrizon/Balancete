@@ -24,22 +24,13 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     <div class="card-body py-2">
       <form method="GET" action="<?= url() ?>" class="row g-2 align-items-end">
         <input type="hidden" name="route" value="dre">
-        <div class="col-sm-6 col-md-2">
+        <div class="col-sm-6 col-md-3">
           <label class="form-label small mb-1 fw-semibold">Empresa</label>
-          <select name="company_id" class="form-select form-select-sm">
+          <select name="company_filter" class="form-select form-select-sm">
             <option value="">Todas</option>
-            <?php foreach ($companies as $c): ?>
-            <option value="<?= $c['id'] ?>" <?= $fCompany == $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-        <div class="col-sm-6 col-md-2">
-          <label class="form-label small mb-1 fw-semibold">Grupo</label>
-          <select name="group_id" class="form-select form-select-sm">
-            <option value="">Todos</option>
-            <?php foreach ($groups as $g): ?>
-            <option value="<?= (int)$g['id'] ?>" <?= $fGroup == $g['id'] ? 'selected' : '' ?>>
-              <?= e($g['name']) ?> (<?= (int)$g['units_count'] ?>)
+            <?php foreach ($companyOptions as $option): ?>
+            <option value="<?= e($option['value']) ?>" <?= $fCompanyFilter === $option['value'] ? 'selected' : '' ?>>
+              <?= $option['kind'] === 'group' ? 'Grupo: ' : '' ?><?= e($option['label']) ?>
             </option>
             <?php endforeach; ?>
           </select>

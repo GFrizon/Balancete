@@ -34,7 +34,7 @@ class CsvExporter
                 $row['line_number'],
                 $row['indentation_level'],
                 $row['account_code'],
-                $row['account_description'],
+                $this->cleanDescription((string)$row['account_description']),
                 number_format((float)$row['movement_value'], 2, ',', '.'),
                 $row['movement_type'] ?: '',
             ], ';', '"', '\\');
@@ -92,5 +92,19 @@ class CsvExporter
         $stmt->execute($params);
 
         return $stmt->fetchAll();
+    }
+
+    private function cleanDescription(string $description): string
+    {
+        $description = trim(preg_replace('/\s+/', ' ', $description) ?? $description);
+        $money = '\d{1,3}(?:\.\d{3})*,\d{2}';
+
+        do {
+            $previous = $description;
+            $description = preg_replace('/\s+' . $money . '(?:DB|CR)?$/u', '', $description) ?? $description;
+            $description = trim($description);
+        } while ($description !== $previous);
+
+        return $description;
     }
 }
