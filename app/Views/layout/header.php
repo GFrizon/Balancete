@@ -38,6 +38,10 @@
         </li>
         <?php if (current_user_role() === 'admin'): ?>
         <li class="nav-item">
+          <a class="nav-link <?= str_starts_with($_GET['route'] ?? '', 'groups') ? 'active' : '' ?>"
+             href="<?= url('groups') ?>"><i class="bi bi-diagram-3 me-1"></i>Grupos</a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link <?= str_starts_with($_GET['route'] ?? '', 'users') ? 'active' : '' ?>"
              href="<?= url('users') ?>"><i class="bi bi-people me-1"></i>Usuários</a>
         </li>

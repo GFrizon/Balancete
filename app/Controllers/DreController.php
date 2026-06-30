@@ -10,6 +10,7 @@ class DreController
 
         $fCompany    = (int)($_GET['company_id'] ?? 0);
         $fUnit       = (int)($_GET['unit_id'] ?? 0);
+        $fGroup      = (int)($_GET['group_id'] ?? 0);
         $fYear       = (int)($_GET['year'] ?? date('Y'));
 
         $monthStartSet = isset($_GET['month_start']) && $_GET['month_start'] !== '';
@@ -19,6 +20,15 @@ class DreController
 
         $companies = $pdo->query('SELECT id, name FROM companies WHERE active=1 ORDER BY name')->fetchAll();
         $units     = $pdo->query('SELECT id, name, code, company_id FROM business_units WHERE active=1 ORDER BY code')->fetchAll();
+        $this->ensureUnitGroupTables();
+        $groups = $pdo->query(
+            "SELECT ug.id, ug.name, COUNT(ugi.business_unit_id) AS units_count
+               FROM unit_groups ug
+               JOIN unit_group_items ugi ON ugi.unit_group_id = ug.id
+              WHERE ug.active = 1
+              GROUP BY ug.id
+              ORDER BY ug.name"
+        )->fetchAll();
 
         $yearsAvailable = $pdo->query(
             "SELECT DISTINCT year FROM imports WHERE status='confirmed' ORDER BY year DESC"
@@ -29,7 +39,7 @@ class DreController
 
         // Se mês não foi explicitamente enviado, detectar range disponível
         if (!$fMonthStart || !$fMonthEnd) {
-            [$defaultStart, $defaultEnd] = $this->detectMonthRange($fYear, $fCompany, $fUnit);
+            [$defaultStart, $defaultEnd] = $this->detectMonthRange($fYear, $fCompany, $fUnit, $fGroup);
             if (!$fMonthStart) {
                 $fMonthStart = $defaultStart;
             }
@@ -38,15 +48,15 @@ class DreController
             }
         }
 
-        $importIds = $this->resolveImportIds($fCompany, $fUnit, $fYear, $fMonthStart, $fMonthEnd);
+        $importIds = $this->resolveImportIds($fCompany, $fUnit, $fGroup, $fYear, $fMonthStart, $fMonthEnd);
         $imports = $this->getImportMeta($importIds);
         $treeRows = (new BalanceteTree())->rowsForImports($importIds);
         $months = $this->selectedMonths($fYear, $fMonthStart, $fMonthEnd);
         $matrixRows = $this->buildMatrix($treeRows, $months, $fUnit === 0);
 
         view('dre/index', compact(
-            'companies', 'units', 'yearsAvailable',
-            'fCompany', 'fUnit', 'fYear', 'fMonthStart', 'fMonthEnd',
+            'companies', 'units', 'groups', 'yearsAvailable',
+            'fCompany', 'fUnit', 'fGroup', 'fYear', 'fMonthStart', 'fMonthEnd',
             'imports', 'months', 'matrixRows'
         ));
     }
@@ -83,6 +93,7 @@ class DreController
         $filters = [
             'company_id'  => (int)($_GET['company_id'] ?? 0),
             'unit_id'     => (int)($_GET['unit_id'] ?? 0),
+            'group_id'    => (int)($_GET['group_id'] ?? 0),
             'year'        => (int)($_GET['year'] ?? 0),
             'month_start' => (int)($_GET['month_start'] ?? 0),
             'month_end'   => (int)($_GET['month_end'] ?? 0),
@@ -91,17 +102,24 @@ class DreController
         (new CsvExporter())->exportToBrowser($filters);
     }
 
-    private function resolveImportIds(int $companyId, int $unitId, int $year, int $monthStart, int $monthEnd): array
+    private function resolveImportIds(int $companyId, int $unitId, int $groupId, int $year, int $monthStart, int $monthEnd): array
     {
         $where = ["i.status = 'confirmed'", 'i.year = ?', 'i.month >= ?', 'i.month <= ?'];
         $params = [$year, $monthStart, $monthEnd];
 
+        if ($companyId) {
+            $where[] = 'i.company_id = ?';
+            $params[] = $companyId;
+        }
+
         if ($unitId) {
             $where[] = 'i.business_unit_id = ?';
             $params[] = $unitId;
-        } elseif ($companyId) {
-            $where[] = 'i.company_id = ?';
-            $params[] = $companyId;
+        } elseif ($groupId) {
+            $where[] = 'i.business_unit_id IN (
+                SELECT business_unit_id FROM unit_group_items WHERE unit_group_id = ?
+            )';
+            $params[] = $groupId;
         }
 
         $stmt = db()->prepare('SELECT i.id FROM imports i WHERE ' . implode(' AND ', $where));
@@ -447,17 +465,24 @@ class DreController
      * Retorna [minMes, maxMes] dos imports confirmados que realmente têm linhas
      * de balancete para o ano/empresa/unidade. Se nenhum dado existir, usa o mês corrente.
      */
-    private function detectMonthRange(int $year, int $companyId, int $unitId): array
+    private function detectMonthRange(int $year, int $companyId, int $unitId, int $groupId): array
     {
         $where  = ["i.status = 'confirmed'", 'i.year = ?'];
         $params = [$year];
 
+        if ($companyId) {
+            $where[]  = 'i.company_id = ?';
+            $params[] = $companyId;
+        }
+
         if ($unitId) {
             $where[]  = 'i.business_unit_id = ?';
             $params[] = $unitId;
-        } elseif ($companyId) {
-            $where[]  = 'i.company_id = ?';
-            $params[] = $companyId;
+        } elseif ($groupId) {
+            $where[] = 'i.business_unit_id IN (
+                SELECT business_unit_id FROM unit_group_items WHERE unit_group_id = ?
+            )';
+            $params[] = $groupId;
         }
 
         $stmt = db()->prepare(
@@ -476,5 +501,28 @@ class DreController
         // Sem dados: usar apenas o mês corrente como fallback
         $currentMonth = (int)date('n');
         return [$currentMonth, $currentMonth];
+    }
+
+    private function ensureUnitGroupTables(): void
+    {
+        db()->exec(
+            "CREATE TABLE IF NOT EXISTS unit_groups (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                name VARCHAR(200) NOT NULL,
+                active TINYINT(1) NOT NULL DEFAULT 1,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
+
+        db()->exec(
+            "CREATE TABLE IF NOT EXISTS unit_group_items (
+                id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                unit_group_id INT UNSIGNED NOT NULL,
+                business_unit_id INT UNSIGNED NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_ugi (unit_group_id, business_unit_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
     }
 }

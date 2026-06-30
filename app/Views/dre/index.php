@@ -24,12 +24,23 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     <div class="card-body py-2">
       <form method="GET" action="<?= url() ?>" class="row g-2 align-items-end">
         <input type="hidden" name="route" value="dre">
-        <div class="col-sm-6 col-md-3">
+        <div class="col-sm-6 col-md-2">
           <label class="form-label small mb-1 fw-semibold">Empresa</label>
           <select name="company_id" class="form-select form-select-sm">
             <option value="">Todas</option>
             <?php foreach ($companies as $c): ?>
             <option value="<?= $c['id'] ?>" <?= $fCompany == $c['id'] ? 'selected' : '' ?>><?= e($c['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="col-sm-6 col-md-2">
+          <label class="form-label small mb-1 fw-semibold">Grupo</label>
+          <select name="group_id" class="form-select form-select-sm">
+            <option value="">Todos</option>
+            <?php foreach ($groups as $g): ?>
+            <option value="<?= (int)$g['id'] ?>" <?= $fGroup == $g['id'] ? 'selected' : '' ?>>
+              <?= e($g['name']) ?> (<?= (int)$g['units_count'] ?>)
+            </option>
             <?php endforeach; ?>
           </select>
         </div>
@@ -70,8 +81,8 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
           <button type="submit" class="btn btn-primary btn-sm flex-fill"><i class="bi bi-search me-1"></i>Filtrar</button>
           <a href="<?= url('dre') ?>" class="btn btn-outline-secondary btn-sm" title="Limpar filtros"><i class="bi bi-x-lg"></i></a>
         </div>
-        <div class="col-sm-6 col-md-2">
-          <a href="<?= url('dre/export', ['company_id'=>$fCompany,'unit_id'=>$fUnit,'year'=>$fYear,'month_start'=>$fMonthStart,'month_end'=>$fMonthEnd]) ?>"
+        <div class="col-sm-6 col-md-1">
+          <a href="<?= url('dre/export', ['company_id'=>$fCompany,'group_id'=>$fGroup,'unit_id'=>$fUnit,'year'=>$fYear,'month_start'=>$fMonthStart,'month_end'=>$fMonthEnd]) ?>"
              class="btn btn-outline-success btn-sm w-100">
             <i class="bi bi-download me-1"></i>CSV
           </a>

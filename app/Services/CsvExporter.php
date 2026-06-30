@@ -56,6 +56,11 @@ class CsvExporter
         if (!empty($filters['unit_id'])) {
             $where[] = 'i.business_unit_id = ?';
             $params[] = (int)$filters['unit_id'];
+        } elseif (!empty($filters['group_id'])) {
+            $where[] = 'i.business_unit_id IN (
+                SELECT business_unit_id FROM unit_group_items WHERE unit_group_id = ?
+            )';
+            $params[] = (int)$filters['group_id'];
         }
         if (!empty($filters['year'])) {
             $where[] = 'i.year = ?';

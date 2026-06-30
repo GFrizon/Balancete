@@ -587,6 +587,11 @@ body {
 .badge.bg-warning-subtle { background-color: #fff3cd !important; }
 .badge.bg-primary-subtle { background-color: #cfe2ff !important; }
 
+.group-unit-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
 /* ---- Table geral ---- */
 .table > tbody > tr > td,
 .table > thead > tr > th {
