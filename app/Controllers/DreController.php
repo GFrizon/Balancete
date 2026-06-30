@@ -318,6 +318,8 @@ class DreController
         }
 
         $visibleMonthCount = max(1, count($monthKeys));
+        $receitaAcumulada = array_sum($receitaPorMes);
+        $receitaMedia = $receitaAcumulada / $visibleMonthCount;
 
         foreach ($matrix as &$row) {
             $sum = 0.0;
@@ -341,6 +343,8 @@ class DreController
             $row['count_nonzero'] = $count;
             $row['media'] = $sum / $visibleMonthCount;
             $row['movimento'] = $sum;
+            $row['media_percentual'] = $receitaMedia != 0.0 ? (abs((float)$row['media']) / $receitaMedia) * 100 : 0.0;
+            $row['acumulado_percentual'] = $receitaAcumulada != 0.0 ? (abs($sum) / $receitaAcumulada) * 100 : 0.0;
         }
         unset($row);
 
@@ -409,6 +413,8 @@ class DreController
             $previousByKey[$this->rowKey($row)] = [
                 'media' => (float)($row['media'] ?? 0.0),
                 'acumulado' => (float)($row['acumulado'] ?? 0.0),
+                'media_percentual' => (float)($row['media_percentual'] ?? 0.0),
+                'acumulado_percentual' => (float)($row['acumulado_percentual'] ?? 0.0),
             ];
         }
 
@@ -416,6 +422,8 @@ class DreController
             $previous = $previousByKey[$this->rowKey($row)] ?? null;
             $row['previous_year_media'] = $previous['media'] ?? 0.0;
             $row['previous_year_acumulado'] = $previous['acumulado'] ?? 0.0;
+            $row['previous_year_media_percentual'] = $previous['media_percentual'] ?? 0.0;
+            $row['previous_year_acumulado_percentual'] = $previous['acumulado_percentual'] ?? 0.0;
         }
         unset($row);
     }
