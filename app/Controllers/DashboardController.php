@@ -41,12 +41,12 @@ class DashboardController
 
         // Análises financeiras
         $monthlySummary = $this->monthlySummary($pdo);
-        $topAccounts = $this->topAccounts($pdo, 5);
+        $unitComparison = $this->unitComparison($pdo);
         $lastMonthSummary = !empty($monthlySummary) ? $monthlySummary[array_key_last($monthlySummary)] : null;
 
         view('dashboard/index', compact(
             'recentImports', 'totalImports', 'totalConfirmed', 'totalUnits', 'lastImport',
-            'monthlySummary', 'topAccounts', 'lastMonthSummary'
+            'monthlySummary', 'unitComparison', 'lastMonthSummary'
         ));
     }
 
@@ -133,29 +133,89 @@ class DashboardController
         return $value;
     }
 
-    private function topAccounts(PDO $pdo, int $limit): array
+    private function unitComparison(PDO $pdo): array
     {
-        $lastImport = $pdo->query(
-            "SELECT i.id, i.year, i.month
+        $lastPeriod = $pdo->query(
+            "SELECT i.year, i.month
              FROM imports i
              WHERE i.status = 'confirmed'
              ORDER BY i.year DESC, i.month DESC
              LIMIT 1"
         )->fetch();
 
-        if (!$lastImport) {
-            return [];
+        if (!$lastPeriod) {
+            return ['period' => null, 'rows' => []];
         }
 
         $stmt = $pdo->prepare(
-            "SELECT tbr.account_code, tbr.account_description,
-                    tbr.movement_value, tbr.movement_type
+            "SELECT bu.code AS unit_code,
+                    bu.name AS unit_name,
+                    tbr.account_description,
+                    tbr.movement_value,
+                    tbr.movement_type
              FROM trial_balance_rows tbr
-             WHERE tbr.import_id = ?
-             ORDER BY ABS(tbr.movement_value) DESC
-             LIMIT ?"
+             JOIN imports i ON i.id = tbr.import_id
+             JOIN business_units bu ON bu.id = i.business_unit_id
+             WHERE i.status = 'confirmed'
+               AND i.year = ?
+               AND i.month = ?
+               AND tbr.is_analytical = 0
+             ORDER BY bu.code, tbr.line_number"
         );
-        $stmt->execute([$lastImport['id'], $limit]);
-        return $stmt->fetchAll();
+        $stmt->execute([(int)$lastPeriod['year'], (int)$lastPeriod['month']]);
+
+        $targets = [
+            'revenue' => $this->normalizeAccountDescription('RECEITA OPERACIONAL LIQUIDA'),
+            'cost' => $this->normalizeAccountDescription('CUSTO DAS VENDAS'),
+            'result' => $this->normalizeAccountDescription('RESULTADO LIQUIDO DO EXERCICIO'),
+        ];
+        $rowsByUnit = [];
+
+        foreach ($stmt->fetchAll() as $row) {
+            $unitCode = (string)$row['unit_code'];
+            if (!isset($rowsByUnit[$unitCode])) {
+                $rowsByUnit[$unitCode] = [
+                    'unit_code' => $unitCode,
+                    'unit_name' => (string)$row['unit_name'],
+                    'revenue' => 0.0,
+                    'cost' => 0.0,
+                    'result' => 0.0,
+                    'margin' => 0.0,
+                ];
+            }
+
+            $description = $this->normalizeAccountDescription((string)$row['account_description']);
+            $movement = $this->signedMovement((float)$row['movement_value'], (string)($row['movement_type'] ?? ''));
+
+            if ($description === $targets['revenue']) {
+                $rowsByUnit[$unitCode]['revenue'] += abs($movement);
+            } elseif ($description === $targets['cost']) {
+                $rowsByUnit[$unitCode]['cost'] += abs($movement);
+            } elseif ($description === $targets['result']) {
+                $rowsByUnit[$unitCode]['result'] += $movement;
+            }
+        }
+
+        foreach ($rowsByUnit as &$unit) {
+            $unit['margin'] = $unit['revenue'] > 0 ? ($unit['result'] / $unit['revenue']) * 100 : 0.0;
+        }
+        unset($unit);
+
+        $rows = array_values(array_filter($rowsByUnit, static function (array $unit): bool {
+            return $unit['revenue'] !== 0.0 || $unit['cost'] !== 0.0 || $unit['result'] !== 0.0;
+        }));
+
+        usort($rows, static function (array $a, array $b): int {
+            return $b['result'] <=> $a['result'];
+        });
+
+        return [
+            'period' => [
+                'year' => (int)$lastPeriod['year'],
+                'month' => (int)$lastPeriod['month'],
+                'label' => month_short((int)$lastPeriod['month']) . '/' . (int)$lastPeriod['year'],
+            ],
+            'rows' => $rows,
+        ];
     }
 }
