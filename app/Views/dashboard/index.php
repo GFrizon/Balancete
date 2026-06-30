@@ -262,15 +262,6 @@
 
   <!-- Detalhamento completo das contas por filial -->
   <?php if (!empty($accountComparison['rows'])): ?>
-  <?php
-    // Calcular máximos de cada coluna para proporcionalidade das barras
-    $maxReceita   = max(1, max(array_map(fn($u) => (float)$u['receita_acum'],            $accountComparison['rows'])));
-    $maxDevolucao = max(1, max(array_map(fn($u) => (float)$u['devolucoes_acum'],          $accountComparison['rows'])));
-    $maxCusto     = max(1, max(array_map(fn($u) => (float)$u['custo_acum'],               $accountComparison['rows'])));
-    $maxDespOp    = max(1, max(array_map(fn($u) => (float)$u['desp_operacionais_acum'],   $accountComparison['rows'])));
-    $maxDespAdm   = max(1, max(array_map(fn($u) => (float)$u['desp_administrativas_acum'],$accountComparison['rows'])));
-    $maxResultado = max(1, max(array_map(fn($u) => abs((float)$u['resultado_acum']),      $accountComparison['rows'])));
-  ?>
   <div class="row g-3 mb-5">
     <div class="col-12">
       <div class="card shadow-sm border-0">
@@ -318,14 +309,6 @@
                   $margin          = (float)$unit['margin'];
                   $isBest  = $bestMargin  && $unit['unit_id'] === $bestMargin['unit_id'];
                   $isWorst = $worstResult && $unit['unit_id'] === $worstResult['unit_id'];
-
-                  // Percentuais para as barras (0–100)
-                  $pReceita    = min(100, $receita    / $maxReceita   * 100);
-                  $pDevolucao  = min(100, $devolucoes / $maxDevolucao * 100);
-                  $pCusto      = min(100, $custo      / $maxCusto     * 100);
-                  $pDespOp     = min(100, $despOp     / $maxDespOp    * 100);
-                  $pDespAdm    = min(100, $despAdm    / $maxDespAdm   * 100);
-                  $pResultado  = min(100, abs($resultado) / $maxResultado * 100);
                 ?>
                 <tr style="border-bottom: 1px solid #f1f5f9; <?= $isBest ? 'background: #f0fdf4;' : ($isWorst && $resultado < 0 ? 'background: #fef2f2;' : '') ?>">
                   <td class="py-3">
@@ -338,39 +321,39 @@
                   </td>
 
                   <!-- Receita -->
-                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(34,197,94,.13) <?= number_format($pReceita,2,'.','') ?>%, transparent <?= number_format($pReceita,2,'.','') ?>%);">
+                  <td class="py-3 text-end">
                     <div class="fw-semibold text-success"><?= format_brl($receita) ?></div>
-                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($receitaMedia) ?></small>
+                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($receitaMedia) ?></small>
                   </td>
 
                   <!-- Devoluções -->
-                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(234,179,8,.13) <?= number_format($pDevolucao,2,'.','') ?>%, transparent <?= number_format($pDevolucao,2,'.','') ?>%);">
+                  <td class="py-3 text-end">
                     <div class="fw-semibold text-warning"><?= format_brl($devolucoes) ?></div>
-                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($devolucoesMedia) ?></small>
+                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($devolucoesMedia) ?></small>
                   </td>
 
                   <!-- Custo -->
-                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(239,68,68,.11) <?= number_format($pCusto,2,'.','') ?>%, transparent <?= number_format($pCusto,2,'.','') ?>%);">
+                  <td class="py-3 text-end">
                     <div class="fw-semibold text-danger"><?= format_brl($custo) ?></div>
-                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($custoMedia) ?></small>
+                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($custoMedia) ?></small>
                   </td>
 
                   <!-- Desp. Operacionais -->
-                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(249,115,22,.11) <?= number_format($pDespOp,2,'.','') ?>%, transparent <?= number_format($pDespOp,2,'.','') ?>%);">
+                  <td class="py-3 text-end">
                     <div class="fw-semibold text-danger"><?= format_brl($despOp) ?></div>
-                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($despOpMedia) ?></small>
+                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($despOpMedia) ?></small>
                   </td>
 
                   <!-- Desp. Administrativas -->
-                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(251,113,133,.11) <?= number_format($pDespAdm,2,'.','') ?>%, transparent <?= number_format($pDespAdm,2,'.','') ?>%);">
+                  <td class="py-3 text-end">
                     <div class="fw-semibold text-danger"><?= format_brl($despAdm) ?></div>
-                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($despAdmMedia) ?></small>
+                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($despAdmMedia) ?></small>
                   </td>
 
                   <!-- Resultado -->
-                  <td class="py-2 text-end" style="background: linear-gradient(to left, <?= $resultado < 0 ? 'rgba(239,68,68,.13)' : 'rgba(34,197,94,.13)' ?> <?= number_format($pResultado,2,'.','') ?>%, transparent <?= number_format($pResultado,2,'.','') ?>%);">
+                  <td class="py-3 text-end">
                     <div class="fw-bold <?= $resultado < 0 ? 'text-danger' : 'text-success' ?>"><?= format_brl($resultado) ?></div>
-                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($resultadoMedia) ?></small>
+                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($resultadoMedia) ?></small>
                   </td>
 
                   <!-- Margem -->
@@ -385,12 +368,12 @@
               <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
                 <tr>
                   <td class="py-3 fw-bold" style="color: #1e293b;">TOTAL GERAL</td>
-                  <td class="py-2 fw-bold text-success text-end" style="background:rgba(34,197,94,.08);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['receita_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-2 fw-bold text-warning text-end" style="background:rgba(234,179,8,.08);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['devolucoes_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-2 fw-bold text-danger text-end" style="background:rgba(239,68,68,.07);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['custo_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-2 fw-bold text-danger text-end" style="background:rgba(249,115,22,.07);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_operacionais_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-2 fw-bold text-danger text-end" style="background:rgba(251,113,133,.07);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_administrativas_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-2 fw-bold <?= (float)($accTotals['resultado'] ?? 0) < 0 ? 'text-danger' : 'text-success' ?> text-end" style="background:<?= (float)($accTotals['resultado'] ?? 0) < 0 ? 'rgba(239,68,68,.08)' : 'rgba(34,197,94,.08)' ?>"><?= format_brl((float)($accTotals['resultado'] ?? 0)) ?></td>
+                  <td class="py-3 fw-bold text-success text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['receita_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-3 fw-bold text-warning text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['devolucoes_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-3 fw-bold text-danger text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['custo_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-3 fw-bold text-danger text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_operacionais_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-3 fw-bold text-danger text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_administrativas_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-3 fw-bold <?= (float)($accTotals['resultado'] ?? 0) < 0 ? 'text-danger' : 'text-success' ?> text-end"><?= format_brl((float)($accTotals['resultado'] ?? 0)) ?></td>
                   <td class="py-3 text-center">
                     <?php
                       $totalMargin = (float)($accTotals['receita'] ?? 0) > 0
