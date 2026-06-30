@@ -242,18 +242,43 @@ class DashboardController
 
         foreach ($rowsByUnit as &$unit) {
             $unit['margin'] = $unit['revenue'] > 0 ? ($unit['result'] / $unit['revenue']) * 100 : 0.0;
+            $unit['revenue_share'] = 0.0;
         }
         unset($unit);
 
         $rows = array_values($rowsByUnit);
+        $totalRevenue = array_sum(array_map(static fn (array $unit): float => (float)$unit['revenue'], $rows));
+        $totalResult = array_sum(array_map(static fn (array $unit): float => (float)$unit['result'], $rows));
+
+        foreach ($rows as &$row) {
+            $row['revenue_share'] = $totalRevenue > 0 ? ((float)$row['revenue'] / $totalRevenue) * 100 : 0.0;
+        }
+        unset($row);
 
         usort($rows, static function (array $a, array $b): int {
-            return [$a['unit_code'], $a['unit_name']] <=> [$b['unit_code'], $b['unit_name']];
+            return [(float)$b['revenue'], (float)$b['result']] <=> [(float)$a['revenue'], (float)$a['result']];
         });
+
+        $bestMargin = null;
+        foreach ($rows as $row) {
+            if ((float)$row['revenue'] <= 0) {
+                continue;
+            }
+            if ($bestMargin === null || (float)$row['margin'] > (float)$bestMargin['margin']) {
+                $bestMargin = $row;
+            }
+        }
 
         return [
             'period' => [
                 'label' => 'Último balancete por unidade',
+            ],
+            'totals' => [
+                'units' => count($rows),
+                'revenue' => $totalRevenue,
+                'result' => $totalResult,
+                'positive_units' => count(array_filter($rows, static fn (array $unit): bool => (float)$unit['result'] > 0)),
+                'best_margin' => $bestMargin,
             ],
             'rows' => $rows,
         ];
