@@ -171,10 +171,10 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             <?php foreach ($months as $month): ?>
             <th class="text-end dre-money-col dre-month-col"><?= e($month['label']) ?></th>
             <?php endforeach; ?>
-            <th class="text-end dre-money-col">Media</th>
             <th class="text-end dre-money-col">Acumulado</th>
-            <th class="text-end dre-money-col">Media <?= (int)$previousYear ?></th>
+            <th class="text-end dre-money-col">Media</th>
             <th class="text-end dre-money-col">Acumulado <?= (int)$previousYear ?></th>
+            <th class="text-end dre-money-col">Media <?= (int)$previousYear ?></th>
           </tr>
         </thead>
         <tbody>
@@ -236,28 +236,28 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
               <?php endif; ?>
             </td>
             <?php endforeach; ?>
-            <td class="text-end dre-money <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>">
-              <div><?= $formatSigned($media) ?><?= $trendIndicator($media, $previousYearMedia) ?></div>
-              <?php if (abs($mediaPercentual) >= 0.01): ?>
-              <div class="dre-percent"><?= number_format($mediaPercentual, 1, ',', '.') ?>%</div>
-              <?php endif; ?>
-            </td>
             <td class="text-end dre-money <?= $acumulado < 0 ? 'is-negative' : ($acumulado > 0 ? 'is-positive' : '') ?>">
               <div><?= $formatSigned($acumulado) ?><?= $trendIndicator($acumulado, $previousYearAcumulado) ?></div>
               <?php if (abs($acumuladoPercentual) >= 0.01): ?>
               <div class="dre-percent"><?= number_format($acumuladoPercentual, 1, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
-            <td class="text-end dre-money <?= $previousYearMedia < 0 ? 'is-negative' : ($previousYearMedia > 0 ? 'is-positive' : '') ?>">
-              <div><?= $formatSigned($previousYearMedia) ?></div>
-              <?php if (abs($previousYearMediaPercentual) >= 0.01): ?>
-              <div class="dre-percent"><?= number_format($previousYearMediaPercentual, 1, ',', '.') ?>%</div>
+            <td class="text-end dre-money <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>">
+              <div><?= $formatSigned($media) ?><?= $trendIndicator($media, $previousYearMedia) ?></div>
+              <?php if (abs($mediaPercentual) >= 0.01): ?>
+              <div class="dre-percent"><?= number_format($mediaPercentual, 1, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
             <td class="text-end dre-money <?= $previousYearAcumulado < 0 ? 'is-negative' : ($previousYearAcumulado > 0 ? 'is-positive' : '') ?>">
               <div><?= $formatSigned($previousYearAcumulado) ?></div>
               <?php if (abs($previousYearAcumuladoPercentual) >= 0.01): ?>
               <div class="dre-percent"><?= number_format($previousYearAcumuladoPercentual, 1, ',', '.') ?>%</div>
+              <?php endif; ?>
+            </td>
+            <td class="text-end dre-money <?= $previousYearMedia < 0 ? 'is-negative' : ($previousYearMedia > 0 ? 'is-positive' : '') ?>">
+              <div><?= $formatSigned($previousYearMedia) ?></div>
+              <?php if (abs($previousYearMediaPercentual) >= 0.01): ?>
+              <div class="dre-percent"><?= number_format($previousYearMediaPercentual, 1, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
           </tr>
