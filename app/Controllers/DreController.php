@@ -169,6 +169,7 @@ class DreController
                     'is_analytical' => (int)$row['is_analytical'],
                     'has_children' => !empty($row['has_children']),
                     'line_number' => (int)$row['line_number'],
+                    'sort_line_number' => (float)$row['line_number'],
                     'sort_year' => (int)$row['year'],
                     'sort_month' => (int)$row['month'],
                     'values' => array_fill_keys($monthKeys, 0.0),
@@ -183,8 +184,9 @@ class DreController
             } else {
                 $currentPeriod = [(int)$matrix[$key]['sort_year'], (int)$matrix[$key]['sort_month']];
                 $rowPeriod = [(int)$row['year'], (int)$row['month']];
-                if ($rowPeriod >= $currentPeriod) {
+                if ($rowPeriod > $currentPeriod || ($rowPeriod === $currentPeriod && (int)$row['line_number'] < (int)$matrix[$key]['line_number'])) {
                     $matrix[$key]['line_number'] = (int)$row['line_number'];
+                    $matrix[$key]['sort_line_number'] = (float)$row['line_number'];
                     $matrix[$key]['sort_year'] = (int)$row['year'];
                     $matrix[$key]['sort_month'] = (int)$row['month'];
                 }
@@ -247,14 +249,45 @@ class DreController
         unset($row);
 
         $matrixRows = array_values($matrix);
+        $parentLineByCode = [];
+        foreach ($matrixRows as $row) {
+            if (!empty($row['is_analytical'])) {
+                continue;
+            }
+
+            $code = (string)$row['account_code'];
+            $line = (float)$row['line_number'];
+            $parentLineByCode[$code] = isset($parentLineByCode[$code])
+                ? min($parentLineByCode[$code], $line)
+                : $line;
+        }
+
+        foreach ($matrixRows as &$row) {
+            if (empty($row['is_analytical'])) {
+                continue;
+            }
+
+            $code = (string)$row['account_code'];
+            if (!isset($parentLineByCode[$code])) {
+                continue;
+            }
+
+            $unitOrder = 0;
+            if (preg_match('/^(\d{3})\s+/', (string)$row['account_description'], $matches)) {
+                $unitOrder = (int)$matches[1];
+            }
+            $row['sort_line_number'] = $parentLineByCode[$code] + ($unitOrder / 10000);
+        }
+        unset($row);
+
         usort($matrixRows, static function (array $a, array $b): int {
             return [
-                (int)$a['line_number'],
+                (float)$a['sort_line_number'],
                 (int)$a['indentation_level'],
                 (string)$a['account_code'],
                 (string)$a['account_description'],
             ] <=> [
-                (int)$b['line_number'],
+                (float)$b['sort_line_number'],
                 (int)$b['indentation_level'],
                 (string)$b['account_code'],
                 (string)$b['account_description'],
@@ -319,7 +352,7 @@ class DreController
             $firstChildLevel = (int)$rows[$j]['indentation_level'];
             $currentCode = trim((string)$rows[$i]['account_code']);
             $childCode = trim((string)$rows[$j]['account_code']);
-            if ($currentCode !== '' && $currentCode === $childCode && $firstChildLevel === (int)$rows[$i]['indentation_level'] + 1) {
+            if ($currentCode !== '' && $currentCode === $childCode && $firstChildLevel === (int)$rows[$i]['indentation_level'] + 1 && $this->countImmediateChildren($rows, $i) === 1) {
                 $rows[$i]['hide_duplicate'] = true;
                 $rows[$i]['has_children'] = false;
                 $rows[$i]['is_group'] = false;
@@ -340,6 +373,25 @@ class DreController
         }
 
         return $rows;
+    }
+
+    private function countImmediateChildren(array $rows, int $parentIndex): int
+    {
+        $parentLevel = (int)$rows[$parentIndex]['indentation_level'];
+        $childLevel = $parentLevel + 1;
+        $count = 0;
+
+        for ($i = $parentIndex + 1, $total = count($rows); $i < $total; $i++) {
+            $level = (int)$rows[$i]['indentation_level'];
+            if ($level <= $parentLevel) {
+                break;
+            }
+            if ($level === $childLevel) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     private function isFlatHierarchy(array $rows): bool
