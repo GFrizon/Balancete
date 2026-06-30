@@ -467,6 +467,15 @@
 <?php if (!empty($annualComparison)): ?>
   const annualCtx = document.getElementById('annualChart')?.getContext('2d');
   if (annualCtx) {
+    // Criar gradientes para as barras
+    const revenueGradient = annualCtx.createLinearGradient(0, 0, 0, 300);
+    revenueGradient.addColorStop(0, 'rgba(16, 185, 129, 0.9)');
+    revenueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.5)');
+    
+    const resultGradient = annualCtx.createLinearGradient(0, 0, 0, 300);
+    resultGradient.addColorStop(0, 'rgba(59, 130, 246, 0.9)');
+    resultGradient.addColorStop(1, 'rgba(59, 130, 246, 0.5)');
+    
     new Chart(annualCtx, {
       type: 'bar',
       data: {
@@ -475,18 +484,24 @@
           {
             label: 'Receita',
             data: <?= json_encode(array_map(fn($y) => (float)$y['revenue'], $annualComparison)) ?>,
-            backgroundColor: 'rgba(52, 211, 153, 0.68)',
-            borderColor: '#10b981',
-            borderWidth: 1,
-            borderRadius: 4
+            backgroundColor: revenueGradient,
+            borderColor: 'rgba(16, 185, 129, 0.4)',
+            borderWidth: 2,
+            borderRadius: 12,
+            borderSkipped: false,
+            barThickness: 55,
+            maxBarThickness: 75
           },
           {
             label: 'Resultado',
             data: <?= json_encode(array_map(fn($y) => (float)$y['result'], $annualComparison)) ?>,
-            backgroundColor: 'rgba(96, 165, 250, 0.72)',
-            borderColor: '#3b82f6',
-            borderWidth: 1,
-            borderRadius: 4
+            backgroundColor: resultGradient,
+            borderColor: 'rgba(59, 130, 246, 0.4)',
+            borderWidth: 2,
+            borderRadius: 12,
+            borderSkipped: false,
+            barThickness: 55,
+            maxBarThickness: 75
           }
         ]
       },
@@ -497,13 +512,27 @@
         plugins: {
           legend: {
             position: 'top',
+            align: 'end',
             labels: {
               usePointStyle: true,
-              boxWidth: 8,
-              font: { size: 12 }
+              pointStyle: 'circle',
+              padding: 20,
+              font: { size: 13, weight: '600' },
+              color: '#475569'
             }
           },
           tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.96)',
+            titleColor: '#f1f5f9',
+            bodyColor: '#e2e8f0',
+            borderColor: 'rgba(148, 163, 184, 0.2)',
+            borderWidth: 1,
+            padding: 16,
+            cornerRadius: 12,
+            displayColors: true,
+            boxPadding: 8,
+            titleFont: { size: 13, weight: '600' },
+            bodyFont: { size: 12 },
             callbacks: {
               label: function(context) {
                 const value = Number(context.raw || 0);
@@ -515,13 +544,24 @@
         scales: {
           x: {
             grid: { display: false },
-            ticks: { font: { size: 11 }, color: '#64748b' }
+            ticks: { 
+              font: { size: 14, weight: '700' }, 
+              color: '#334155',
+              padding: 12
+            }
           },
           y: {
-            grid: { color: '#f1f5f9' },
+            beginAtZero: true,
+            grid: { 
+              color: 'rgba(226, 232, 240, 0.6)',
+              drawBorder: false,
+              lineWidth: 1
+            },
+            border: { display: false },
             ticks: {
               font: { size: 11 },
               color: '#94a3b8',
+              padding: 12,
               callback: function(value) {
                 return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
               }
