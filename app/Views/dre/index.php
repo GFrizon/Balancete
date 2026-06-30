@@ -22,7 +22,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
 <div class="container-fluid py-3 px-3 dre-page">
   <div class="card shadow-sm mb-3">
     <div class="card-body py-2">
-      <form method="GET" action="<?= url() ?>" class="row g-2 align-items-end">
+      <form method="GET" action="<?= url() ?>" class="row g-2 align-items-end" id="dreFilters">
         <input type="hidden" name="route" value="dre">
         <div class="col-sm-6 col-md-3">
           <label class="form-label small mb-1 fw-semibold">Empresa</label>
@@ -68,8 +68,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             <?php endforeach; ?>
           </select>
         </div>
-        <div class="col-sm-6 col-md-2 d-flex gap-1">
-          <button type="submit" class="btn btn-primary btn-sm flex-fill"><i class="bi bi-search me-1"></i>Filtrar</button>
+        <div class="col-sm-6 col-md-1">
           <a href="<?= url('dre') ?>" class="btn btn-outline-secondary btn-sm" title="Limpar filtros"><i class="bi bi-x-lg"></i></a>
         </div>
         <div class="col-sm-6 col-md-1">
@@ -233,6 +232,13 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
 
 <?php $extraJs = <<<'JS'
 <script>
+(() => {
+  const filterForm = document.getElementById('dreFilters');
+  filterForm?.querySelectorAll('select').forEach(select => {
+    select.addEventListener('change', () => filterForm.requestSubmit());
+  });
+})();
+
 (() => {
   const table = document.getElementById('balanceteTree');
   if (!table) return;
