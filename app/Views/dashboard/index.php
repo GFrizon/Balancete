@@ -163,7 +163,10 @@
     <?php endif; ?>
 
     <?php if (!empty($unitComparison['rows'])): ?>
-    <?php $unitChartHeight = max(180, min(420, count($unitComparison['rows']) * 44)); ?>
+    <?php
+      $maxRevenue = max(array_map(static fn($u) => abs((float)$u['revenue']), $unitComparison['rows'])) ?: 1;
+      $maxResult = max(array_map(static fn($u) => abs((float)$u['result']), $unitComparison['rows'])) ?: 1;
+    ?>
     <div class="col-lg-6">
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body p-4">
@@ -176,42 +179,42 @@
               <small class="text-muted"><?= e($unitComparison['period']['label'] ?? '') ?></small>
             </div>
           </div>
-          <div class="row g-3 mb-4">
-            <div class="col-md-6">
-              <div class="fw-semibold mb-2" style="font-size: .8rem; color: #475569;">Receita</div>
-              <div style="height: <?= $unitChartHeight ?>px;">
-                <canvas id="unitRevenueChart"></canvas>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <div class="fw-semibold mb-2" style="font-size: .8rem; color: #475569;">Resultado</div>
-              <div style="height: <?= $unitChartHeight ?>px;">
-                <canvas id="unitResultChart"></canvas>
-              </div>
-            </div>
-          </div>
           <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle" style="font-size: .875rem;">
               <thead style="border-bottom: 2px solid #e2e8f0;">
                 <tr>
-                  <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Unidade</th>
-                  <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Período</th>
-                  <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Receita</th>
-                  <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Resultado</th>
+                  <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; min-width: 150px;">Unidade</th>
+                  <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; min-width: 170px;">Receita</th>
+                  <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; min-width: 170px;">Resultado</th>
                   <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Margem</th>
                 </tr>
               </thead>
               <tbody>
                 <?php foreach ($unitComparison['rows'] as $unit): ?>
-                <?php $result = (float)$unit['result']; ?>
+                <?php
+                  $revenue = (float)$unit['revenue'];
+                  $result = (float)$unit['result'];
+                  $revenueWidth = min(100, max(0, (abs($revenue) / $maxRevenue) * 100));
+                  $resultWidth = min(100, max(0, (abs($result) / $maxResult) * 100));
+                ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
                   <td class="py-3">
                     <div class="fw-semibold" style="color: #1e293b;"><?= e($unit['unit_code']) ?></div>
-                    <small class="text-muted"><?= e($unit['unit_name']) ?></small>
+                    <small class="text-muted d-block"><?= e($unit['unit_name']) ?></small>
+                    <small class="text-muted"><?= e($unit['period_label'] ?? '') ?></small>
                   </td>
-                  <td class="py-3"><?= e($unit['period_label'] ?? '') ?></td>
-                  <td class="py-3 text-end fw-semibold"><?= format_brl((float)$unit['revenue']) ?></td>
-                  <td class="py-3 text-end fw-semibold <?= $result < 0 ? 'text-danger' : ($result > 0 ? 'text-success' : '') ?>"><?= format_brl($result) ?></td>
+                  <td class="py-3">
+                    <div class="fw-semibold mb-1"><?= format_brl($revenue) ?></div>
+                    <div style="height: 7px; background: #ecfdf5; border-radius: 999px; overflow: hidden;">
+                      <div style="height: 100%; width: <?= number_format($revenueWidth, 2, '.', '') ?>%; background: #34d399;"></div>
+                    </div>
+                  </td>
+                  <td class="py-3">
+                    <div class="fw-semibold mb-1 <?= $result < 0 ? 'text-danger' : ($result > 0 ? 'text-success' : '') ?>"><?= format_brl($result) ?></div>
+                    <div style="height: 7px; background: #eff6ff; border-radius: 999px; overflow: hidden;">
+                      <div style="height: 100%; width: <?= number_format($resultWidth, 2, '.', '') ?>%; background: <?= $result < 0 ? '#f87171' : '#60a5fa' ?>;"></div>
+                    </div>
+                  </td>
                   <td class="py-3 text-end"><?= number_format((float)$unit['margin'], 1, ',', '.') ?>%</td>
                 </tr>
                 <?php endforeach; ?>
@@ -320,7 +323,7 @@
 
 </div>
 
-<?php if (count($monthlySummary) > 1 || !empty($unitComparison['rows'])): ?>
+<?php if (count($monthlySummary) > 1): ?>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 <?php if (count($monthlySummary) > 1): ?>
@@ -400,84 +403,6 @@
   });
 <?php endif; ?>
 
-<?php if (!empty($unitComparison['rows'])): ?>
-  const unitLabels = <?= json_encode(array_map(fn($u) => $u['unit_code'] . ' - ' . $u['unit_name'], $unitComparison['rows'])) ?>;
-  const currencyTick = function(value) {
-    return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
-  };
-  const currencyTooltip = function(context) {
-    const value = Number(context.raw || 0);
-    return `${context.dataset.label}: ${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-  };
-  const buildUnitChart = function(elementId, label, values, color, borderColor) {
-    const chartCtx = document.getElementById(elementId)?.getContext('2d');
-    if (!chartCtx) {
-      return;
-    }
-
-    new Chart(chartCtx, {
-      type: 'bar',
-      data: {
-        labels: unitLabels,
-        datasets: [
-          {
-            label: label,
-            data: values,
-            backgroundColor: color,
-            borderColor: borderColor,
-            borderWidth: 1,
-            borderRadius: 4
-          }
-        ]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: 'index', intersect: false },
-        plugins: {
-          legend: {
-            display: false
-          },
-          tooltip: {
-            callbacks: {
-              label: currencyTooltip
-            }
-          }
-        },
-        scales: {
-          x: {
-            grid: { color: '#f1f5f9' },
-            ticks: {
-              font: { size: 11 },
-              color: '#94a3b8',
-              callback: currencyTick
-            }
-          },
-          y: {
-            grid: { display: false },
-            ticks: { font: { size: 11 }, color: '#64748b' }
-          }
-        }
-      }
-    });
-  };
-
-  buildUnitChart(
-    'unitRevenueChart',
-    'Receita',
-    <?= json_encode(array_map(fn($u) => (float)$u['revenue'], $unitComparison['rows'])) ?>,
-    'rgba(52, 211, 153, 0.72)',
-    '#10b981'
-  );
-  buildUnitChart(
-    'unitResultChart',
-    'Resultado',
-    <?= json_encode(array_map(fn($u) => (float)$u['result'], $unitComparison['rows'])) ?>,
-    'rgba(96, 165, 250, 0.72)',
-    '#3b82f6'
-  );
-<?php endif; ?>
 </script>
 <?php endif; ?>
 
