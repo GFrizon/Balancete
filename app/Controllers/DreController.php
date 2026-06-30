@@ -42,11 +42,17 @@ class DreController
         $imports = $this->getImportMeta($importIds);
         $treeRows = (new BalanceteTree())->rowsForImports($importIds);
         $months = $this->selectedMonths($fYear, $fMonthStart, $fMonthEnd);
+        $previousYear = $fYear - 1;
+        $previousImportIds = $this->resolveImportIds($fCompany, $fUnit, $fGroup, $previousYear, $fMonthStart, $fMonthEnd);
+        $previousTreeRows = (new BalanceteTree())->rowsForImports($previousImportIds);
+        $previousMonths = $this->selectedMonths($previousYear, $fMonthStart, $fMonthEnd);
+        $previousMatrixRows = $this->buildMatrix($previousTreeRows, $previousMonths, $fUnit === 0);
         $matrixRows = $this->buildMatrix($treeRows, $months, $fUnit === 0);
+        $this->attachPreviousYearTotals($matrixRows, $previousMatrixRows);
 
         view('dre/index', compact(
             'companyOptions', 'units', 'yearsAvailable',
-            'fCompany', 'fCompanyFilter', 'fUnit', 'fGroup', 'fYear', 'fMonthStart', 'fMonthEnd',
+            'fCompany', 'fCompanyFilter', 'fUnit', 'fGroup', 'fYear', 'previousYear', 'fMonthStart', 'fMonthEnd',
             'imports', 'months', 'matrixRows'
         ));
     }
@@ -390,6 +396,28 @@ class DreController
             $this->attachHierarchy($matrixRows),
             static fn (array $row): bool => !empty($row['has_children']) || abs((float)$row['acumulado']) >= 0.005
         ));
+    }
+
+    private function attachPreviousYearTotals(array &$matrixRows, array $previousRows): void
+    {
+        $previousByKey = [];
+
+        foreach ($previousRows as $row) {
+            if (!empty($row['hide_duplicate'])) {
+                continue;
+            }
+            $previousByKey[$this->rowKey($row)] = [
+                'media' => (float)($row['media'] ?? 0.0),
+                'acumulado' => (float)($row['acumulado'] ?? 0.0),
+            ];
+        }
+
+        foreach ($matrixRows as &$row) {
+            $previous = $previousByKey[$this->rowKey($row)] ?? null;
+            $row['previous_year_media'] = $previous['media'] ?? 0.0;
+            $row['previous_year_acumulado'] = $previous['acumulado'] ?? 0.0;
+        }
+        unset($row);
     }
 
     private function attachHierarchy(array $rows): array

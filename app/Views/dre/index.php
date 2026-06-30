@@ -160,6 +160,8 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             <?php endforeach; ?>
             <th class="text-end dre-money-col">Media</th>
             <th class="text-end dre-money-col">Acumulado</th>
+            <th class="text-end dre-money-col">Media <?= (int)$previousYear ?></th>
+            <th class="text-end dre-money-col">Acumulado <?= (int)$previousYear ?></th>
           </tr>
         </thead>
         <tbody>
@@ -170,6 +172,8 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             $hasChildren = !empty($row['has_children']);
             $acumulado = (float)($row['acumulado'] ?? 0);
             $media = (float)($row['media'] ?? 0);
+            $previousYearMedia = (float)($row['previous_year_media'] ?? 0);
+            $previousYearAcumulado = (float)($row['previous_year_acumulado'] ?? 0);
             $rowKind = !empty($row['is_section']) ? 'section' : ($hasChildren ? 'group' : 'item');
             $visualKind = $rowKind;
             if ($rowKind === 'group' && $indent >= 3) {
@@ -220,6 +224,12 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             </td>
             <td class="text-end dre-money <?= $acumulado < 0 ? 'is-negative' : ($acumulado > 0 ? 'is-positive' : '') ?>">
               <?= $formatSigned($acumulado) ?>
+            </td>
+            <td class="text-end dre-money <?= $previousYearMedia < 0 ? 'is-negative' : ($previousYearMedia > 0 ? 'is-positive' : '') ?>">
+              <?= $formatSigned($previousYearMedia) ?>
+            </td>
+            <td class="text-end dre-money <?= $previousYearAcumulado < 0 ? 'is-negative' : ($previousYearAcumulado > 0 ? 'is-positive' : '') ?>">
+              <?= $formatSigned($previousYearAcumulado) ?>
             </td>
           </tr>
           <?php endforeach; ?>
