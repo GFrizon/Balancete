@@ -673,7 +673,7 @@ body {
   font-size: .78rem;
   letter-spacing: .04em;
   white-space: nowrap;
-  padding: .48rem .5rem;
+  padding: .44rem .38rem;
 }
 
 .dre-report-scroll.is-scrolled-y .dre-report-table thead th {
@@ -683,7 +683,7 @@ body {
 .dre-report-table tbody td {
   border-bottom: 1px solid #f1f5f9;
   background: #fff;
-  padding: .34rem .5rem;
+  padding: .3rem .38rem;
   white-space: nowrap;
 }
 
@@ -711,9 +711,9 @@ body {
 
 .dre-desc-col {
   left: 80px;
-  width: 380px;
-  min-width: 380px;
-  max-width: 380px;
+  width: 360px;
+  min-width: 360px;
+  max-width: 360px;
   border-right: 1px solid #bfd3e8;
   box-shadow: 3px 0 8px rgba(15,23,42,.08);
 }
@@ -727,16 +727,16 @@ body {
 }
 
 .dre-money-col {
-  width: 130px;
-  min-width: 130px;
-  max-width: 130px;
+  width: 116px;
+  min-width: 116px;
+  max-width: 116px;
   line-height: 1.15;
 }
 
 .dre-month-col {
-  width: 130px;
-  min-width: 130px;
-  max-width: 130px;
+  width: 116px;
+  min-width: 116px;
+  max-width: 116px;
   line-height: 1.15;
 }
 
@@ -1103,15 +1103,15 @@ body {
   }
 
   .dre-money-col {
-    width: 112px;
-    min-width: 112px;
-    max-width: 112px;
+    width: 104px;
+    min-width: 104px;
+    max-width: 104px;
   }
 
   .dre-month-col {
-    width: 112px;
-    min-width: 112px;
-    max-width: 112px;
+    width: 104px;
+    min-width: 104px;
+    max-width: 104px;
   }
 
 
@@ -1120,12 +1120,12 @@ body {
   }
 
   .dre-report-table thead th {
-    padding: .42rem .4rem;
+    padding: .38rem .32rem;
     font-size: .7rem;
   }
 
   .dre-report-table tbody td {
-    padding: .28rem .4rem;
+    padding: .26rem .32rem;
   }
 
   .dre-label {
