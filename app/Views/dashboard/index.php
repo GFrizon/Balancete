@@ -163,6 +163,7 @@
     <?php endif; ?>
 
     <?php if (!empty($unitComparison['rows'])): ?>
+    <?php $unitChartHeight = max(180, min(420, count($unitComparison['rows']) * 44)); ?>
     <div class="col-lg-6">
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body p-4">
@@ -178,13 +179,13 @@
           <div class="row g-3 mb-4">
             <div class="col-md-6">
               <div class="fw-semibold mb-2" style="font-size: .8rem; color: #475569;">Receita</div>
-              <div style="height: 180px;">
+              <div style="height: <?= $unitChartHeight ?>px;">
                 <canvas id="unitRevenueChart"></canvas>
               </div>
             </div>
             <div class="col-md-6">
               <div class="fw-semibold mb-2" style="font-size: .8rem; color: #475569;">Resultado</div>
-              <div style="height: 180px;">
+              <div style="height: <?= $unitChartHeight ?>px;">
                 <canvas id="unitResultChart"></canvas>
               </div>
             </div>
@@ -194,6 +195,7 @@
               <thead style="border-bottom: 2px solid #e2e8f0;">
                 <tr>
                   <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Unidade</th>
+                  <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Período</th>
                   <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Receita</th>
                   <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Resultado</th>
                   <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Margem</th>
@@ -207,6 +209,7 @@
                     <div class="fw-semibold" style="color: #1e293b;"><?= e($unit['unit_code']) ?></div>
                     <small class="text-muted"><?= e($unit['unit_name']) ?></small>
                   </td>
+                  <td class="py-3"><?= e($unit['period_label'] ?? '') ?></td>
                   <td class="py-3 text-end fw-semibold"><?= format_brl((float)$unit['revenue']) ?></td>
                   <td class="py-3 text-end fw-semibold <?= $result < 0 ? 'text-danger' : ($result > 0 ? 'text-success' : '') ?>"><?= format_brl($result) ?></td>
                   <td class="py-3 text-end"><?= number_format((float)$unit['margin'], 1, ',', '.') ?>%</td>
@@ -398,7 +401,7 @@
 <?php endif; ?>
 
 <?php if (!empty($unitComparison['rows'])): ?>
-  const unitLabels = <?= json_encode(array_map(fn($u) => $u['unit_code'], $unitComparison['rows'])) ?>;
+  const unitLabels = <?= json_encode(array_map(fn($u) => $u['unit_code'] . ' - ' . $u['unit_name'], $unitComparison['rows'])) ?>;
   const currencyTick = function(value) {
     return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
   };
