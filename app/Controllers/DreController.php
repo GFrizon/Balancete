@@ -195,7 +195,7 @@ class DreController
         }
 
         foreach ($companies as $company) {
-            $label = (string)$company['name'];
+            $label = $this->displayCompanyName((string)$company['name']);
             if (!empty($company['units_label'])) {
                 $label .= ' - ' . (string)$company['units_label'];
             }
@@ -208,6 +208,14 @@ class DreController
         }
 
         return $options;
+    }
+
+    private function displayCompanyName(string $name): string
+    {
+        $name = trim(preg_replace('/\s+/', ' ', $name) ?? $name);
+        $name = preg_replace('/\s+EM\s+RECUPERACAO\s+JUDICIAL\b/i', '', $name) ?? $name;
+        $name = preg_replace('/\s+EM\s+RECUPERACAO\s+JUDIC\b/i', '', $name) ?? $name;
+        return trim($name);
     }
 
     private function selectedMonths(int $year, int $monthStart, int $monthEnd): array
