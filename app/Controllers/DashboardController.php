@@ -222,6 +222,25 @@ class DashboardController
     {
         $currentYear = (int)date('Y');
 
+        // Usa o primeiro grupo ativo, se existir
+        $firstGroup = $pdo->query(
+            "SELECT ug.id, ug.name
+               FROM unit_groups ug
+               JOIN unit_group_items ugi ON ugi.unit_group_id = ug.id
+              WHERE ug.active = 1
+              GROUP BY ug.id
+              ORDER BY ug.id
+              LIMIT 1"
+        )->fetch();
+
+        $groupJoin  = '';
+        $groupLabel = '';
+        if ($firstGroup) {
+            $gid = (int)$firstGroup['id'];
+            $groupJoin = "JOIN unit_group_items ugi ON ugi.business_unit_id = bu.id AND ugi.unit_group_id = {$gid}";
+            $groupLabel = ' — ' . $firstGroup['name'];
+        }
+
         $yearImports = $pdo->query(
             "SELECT i.id, i.year, i.month,
                     bu.id AS unit_id,
@@ -229,6 +248,7 @@ class DashboardController
                     bu.name AS unit_name
              FROM imports i
              JOIN business_units bu ON bu.id = i.business_unit_id
+             {$groupJoin}
              WHERE i.status = 'confirmed'
                AND i.year = {$currentYear}
                AND bu.active = 1
@@ -364,6 +384,7 @@ class DashboardController
                 'label' => "Jan a " . month_short($maxMonth) . "/{$currentYear}",
                 'year' => $currentYear,
                 'max_month' => $maxMonth,
+                'group_name' => $groupLabel,
             ],
             'totals' => [
                 'units' => count($rows),
