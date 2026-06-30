@@ -12,6 +12,19 @@ $formatSigned = static function (float $value): string {
     return $value < 0 ? '(' . $formatted . ')' : $formatted;
 };
 
+$trendIndicator = static function (float $current, float $previous): string {
+    if (abs($current - $previous) < 0.005) {
+        return '<span class="text-muted ms-1" title="Igual ao ano anterior"><i class="bi bi-dash"></i></span>';
+    }
+
+    $isHigher = $current > $previous;
+    $icon = $isHigher ? 'bi-arrow-up-short' : 'bi-arrow-down-short';
+    $color = $isHigher ? 'text-success' : 'text-danger';
+    $label = $isHigher ? 'Maior que o ano anterior' : 'Menor que o ano anterior';
+
+    return '<span class="' . $color . ' ms-1" title="' . $label . '"><i class="bi ' . $icon . '"></i></span>';
+};
+
 $periodLabel = $fMonthStart === $fMonthEnd
     ? month_short((int)$fMonthStart) . '/' . $fYear
     : month_short((int)$fMonthStart) . '/' . $fYear . ' a ' . month_short((int)$fMonthEnd) . '/' . $fYear;
@@ -220,10 +233,10 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             </td>
             <?php endforeach; ?>
             <td class="text-end dre-money <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>">
-              <?= $formatSigned($media) ?>
+              <?= $formatSigned($media) ?><?= $trendIndicator($media, $previousYearMedia) ?>
             </td>
             <td class="text-end dre-money <?= $acumulado < 0 ? 'is-negative' : ($acumulado > 0 ? 'is-positive' : '') ?>">
-              <?= $formatSigned($acumulado) ?>
+              <?= $formatSigned($acumulado) ?><?= $trendIndicator($acumulado, $previousYearAcumulado) ?>
             </td>
             <td class="text-end dre-money <?= $previousYearMedia < 0 ? 'is-negative' : ($previousYearMedia > 0 ? 'is-positive' : '') ?>">
               <?= $formatSigned($previousYearMedia) ?>
