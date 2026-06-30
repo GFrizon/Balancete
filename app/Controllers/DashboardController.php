@@ -42,11 +42,12 @@ class DashboardController
         // Análises financeiras
         $monthlySummary = $this->monthlySummary($pdo);
         $unitComparison = $this->unitComparison($pdo);
+        $annualComparison = $this->annualComparison($pdo);
         $lastMonthSummary = !empty($monthlySummary) ? $monthlySummary[array_key_last($monthlySummary)] : null;
 
         view('dashboard/index', compact(
             'recentImports', 'totalImports', 'totalConfirmed', 'totalUnits', 'lastImport',
-            'monthlySummary', 'unitComparison', 'lastMonthSummary'
+            'monthlySummary', 'unitComparison', 'annualComparison', 'lastMonthSummary'
         ));
     }
 
@@ -131,6 +132,90 @@ class DashboardController
             return abs($value);
         }
         return $value;
+    }
+
+    private function annualComparison(PDO $pdo): array
+    {
+        $stmt = $pdo->query(
+            "SELECT i.id AS import_id,
+                    i.year,
+                    i.month,
+                    tbr.account_description,
+                    tbr.movement_value,
+                    tbr.movement_type
+             FROM trial_balance_rows tbr
+             JOIN imports i ON i.id = tbr.import_id
+             WHERE i.status = 'confirmed'
+               AND tbr.is_analytical = 0
+             ORDER BY i.year, i.month, i.id, tbr.line_number"
+        );
+
+        $targetRevenue = $this->normalizeAccountDescription('RECEITA OPERACIONAL LIQUIDA');
+        $targetResult = $this->normalizeAccountDescription('RESULTADO LIQUIDO DO EXERCICIO');
+        $imports = [];
+
+        foreach ($stmt->fetchAll() as $row) {
+            $importId = (int)$row['import_id'];
+            if (!isset($imports[$importId])) {
+                $imports[$importId] = [
+                    'year' => (int)$row['year'],
+                    'month' => (int)$row['month'],
+                    'revenue' => 0.0,
+                    'result' => 0.0,
+                ];
+            }
+
+            $description = $this->normalizeAccountDescription((string)$row['account_description']);
+            $movement = $this->signedMovement((float)$row['movement_value'], (string)($row['movement_type'] ?? ''));
+
+            if ($description === $targetRevenue) {
+                $imports[$importId]['revenue'] += abs($movement);
+            } elseif ($description === $targetResult) {
+                $imports[$importId]['result'] += $movement;
+            }
+        }
+
+        $years = [];
+        foreach ($imports as $import) {
+            $year = (int)$import['year'];
+            if (!isset($years[$year])) {
+                $years[$year] = [
+                    'year' => $year,
+                    'revenue' => 0.0,
+                    'result' => 0.0,
+                    'months' => [],
+                    'months_count' => 0,
+                    'avg_revenue' => 0.0,
+                    'avg_result' => 0.0,
+                    'margin' => 0.0,
+                    'result_change' => null,
+                ];
+            }
+
+            $years[$year]['revenue'] += (float)$import['revenue'];
+            $years[$year]['result'] += (float)$import['result'];
+            $years[$year]['months'][(int)$import['month']] = true;
+        }
+
+        ksort($years);
+        $rows = array_values($years);
+        $previous = null;
+
+        foreach ($rows as &$year) {
+            $year['months_count'] = max(1, count($year['months']));
+            unset($year['months']);
+
+            $year['avg_revenue'] = $year['revenue'] / $year['months_count'];
+            $year['avg_result'] = $year['result'] / $year['months_count'];
+            $year['margin'] = $year['revenue'] > 0 ? ($year['result'] / $year['revenue']) * 100 : 0.0;
+            $year['result_change'] = $previous && abs((float)$previous['result']) >= 0.005
+                ? (($year['result'] - (float)$previous['result']) / abs((float)$previous['result'])) * 100
+                : null;
+            $previous = $year;
+        }
+        unset($year);
+
+        return $rows;
     }
 
     private function unitComparison(PDO $pdo): array

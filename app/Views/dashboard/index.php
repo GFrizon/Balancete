@@ -258,6 +258,74 @@
     <?php endif; ?>
   </div>
 
+  <?php if (!empty($annualComparison)): ?>
+  <?php
+    $lastAnnual = $annualComparison[array_key_last($annualComparison)];
+    $annualChange = $lastAnnual['result_change'];
+  ?>
+  <div class="row g-3 mb-5">
+    <div class="col-12">
+      <div class="card shadow-sm border-0">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap">
+            <div class="d-flex align-items-center gap-2">
+              <div class="d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #eef2ff; border-radius: 8px;">
+                <i class="bi bi-bar-chart-line text-primary"></i>
+              </div>
+              <div>
+                <h5 class="fw-semibold mb-0" style="color: #1e293b;">Evolução Anual</h5>
+                <small class="text-muted">Receita, resultado e margem por ano</small>
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="text-muted" style="font-size: .72rem;">Resultado <?= (int)$lastAnnual['year'] ?></div>
+              <div class="fw-bold <?= (float)$lastAnnual['result'] < 0 ? 'text-danger' : ((float)$lastAnnual['result'] > 0 ? 'text-success' : '') ?>">
+                <?= format_brl((float)$lastAnnual['result']) ?>
+                <?php if ($annualChange !== null): ?>
+                  <small class="<?= $annualChange < 0 ? 'text-danger' : 'text-success' ?> ms-1"><?= $annualChange >= 0 ? '+' : '' ?><?= number_format((float)$annualChange, 1, ',', '.') ?>%</small>
+                <?php endif; ?>
+              </div>
+            </div>
+          </div>
+          <div class="row g-4 align-items-stretch">
+            <div class="col-lg-8">
+              <div style="height: 310px;">
+                <canvas id="annualChart"></canvas>
+              </div>
+            </div>
+            <div class="col-lg-4">
+              <div class="table-responsive h-100">
+                <table class="table table-hover mb-0 align-middle" style="font-size: .875rem;">
+                  <thead style="border-bottom: 2px solid #e2e8f0;">
+                    <tr>
+                      <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Ano</th>
+                      <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Resultado</th>
+                      <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Margem</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <?php foreach (array_reverse($annualComparison) as $yearRow): ?>
+                    <?php $yearResult = (float)$yearRow['result']; ?>
+                    <tr style="border-bottom: 1px solid #f1f5f9;">
+                      <td class="py-3">
+                        <div class="fw-semibold" style="color: #1e293b;"><?= (int)$yearRow['year'] ?></div>
+                        <small class="text-muted"><?= (int)$yearRow['months_count'] ?> mês(es)</small>
+                      </td>
+                      <td class="py-3 text-end fw-semibold <?= $yearResult < 0 ? 'text-danger' : ($yearResult > 0 ? 'text-success' : '') ?>"><?= format_brl($yearResult) ?></td>
+                      <td class="py-3 text-end"><?= number_format((float)$yearRow['margin'], 1, ',', '.') ?>%</td>
+                    </tr>
+                    <?php endforeach; ?>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <?php endif; ?>
+
   <!-- Ações rápidas -->
   <div class="row g-3 mb-5">
     <div class="col-12">
@@ -354,7 +422,7 @@
 
 </div>
 
-<?php if (count($monthlySummary) > 1): ?>
+<?php if (count($monthlySummary) > 1 || !empty($annualComparison)): ?>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script>
 <?php if (count($monthlySummary) > 1): ?>
@@ -432,6 +500,75 @@
       }
     }
   });
+<?php endif; ?>
+
+<?php if (!empty($annualComparison)): ?>
+  const annualCtx = document.getElementById('annualChart')?.getContext('2d');
+  if (annualCtx) {
+    new Chart(annualCtx, {
+      type: 'bar',
+      data: {
+        labels: <?= json_encode(array_map(fn($y) => (string)$y['year'], $annualComparison)) ?>,
+        datasets: [
+          {
+            label: 'Receita',
+            data: <?= json_encode(array_map(fn($y) => (float)$y['revenue'], $annualComparison)) ?>,
+            backgroundColor: 'rgba(52, 211, 153, 0.68)',
+            borderColor: '#10b981',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'Resultado',
+            data: <?= json_encode(array_map(fn($y) => (float)$y['result'], $annualComparison)) ?>,
+            backgroundColor: 'rgba(96, 165, 250, 0.72)',
+            borderColor: '#3b82f6',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              usePointStyle: true,
+              boxWidth: 8,
+              font: { size: 12 }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                const value = Number(context.raw || 0);
+                return `${context.dataset.label}: ${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { size: 11 }, color: '#64748b' }
+          },
+          y: {
+            grid: { color: '#f1f5f9' },
+            ticks: {
+              font: { size: 11 },
+              color: '#94a3b8',
+              callback: function(value) {
+                return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+              }
+            }
+          }
+        }
+      }
+    });
+  }
 <?php endif; ?>
 
 </script>
