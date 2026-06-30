@@ -338,57 +338,39 @@
                   </td>
 
                   <!-- Receita -->
-                  <td class="py-3">
-                    <div class="fw-semibold text-success text-end"><?= format_brl($receita) ?></div>
-                    <small class="text-muted d-block text-end" style="font-size: .68rem;">Méd: <?= format_brl($receitaMedia) ?></small>
-                    <div style="height:4px; background:#dcfce7; border-radius:999px; margin-top:4px;">
-                      <div style="height:100%; width:<?= number_format($pReceita,2,'.','') ?>%; background:#22c55e; border-radius:999px; transition:width .4s;"></div>
-                    </div>
+                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(34,197,94,.13) <?= number_format($pReceita,2,'.','') ?>%, transparent <?= number_format($pReceita,2,'.','') ?>%);">
+                    <div class="fw-semibold text-success"><?= format_brl($receita) ?></div>
+                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($receitaMedia) ?></small>
                   </td>
 
                   <!-- Devoluções -->
-                  <td class="py-3">
-                    <div class="fw-semibold text-warning text-end"><?= format_brl($devolucoes) ?></div>
-                    <small class="text-muted d-block text-end" style="font-size: .68rem;">Méd: <?= format_brl($devolucoesMedia) ?></small>
-                    <div style="height:4px; background:#fef9c3; border-radius:999px; margin-top:4px;">
-                      <div style="height:100%; width:<?= number_format($pDevolucao,2,'.','') ?>%; background:#eab308; border-radius:999px; transition:width .4s;"></div>
-                    </div>
+                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(234,179,8,.13) <?= number_format($pDevolucao,2,'.','') ?>%, transparent <?= number_format($pDevolucao,2,'.','') ?>%);">
+                    <div class="fw-semibold text-warning"><?= format_brl($devolucoes) ?></div>
+                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($devolucoesMedia) ?></small>
                   </td>
 
                   <!-- Custo -->
-                  <td class="py-3">
-                    <div class="fw-semibold text-danger text-end"><?= format_brl($custo) ?></div>
-                    <small class="text-muted d-block text-end" style="font-size: .68rem;">Méd: <?= format_brl($custoMedia) ?></small>
-                    <div style="height:4px; background:#fee2e2; border-radius:999px; margin-top:4px;">
-                      <div style="height:100%; width:<?= number_format($pCusto,2,'.','') ?>%; background:#ef4444; border-radius:999px; transition:width .4s;"></div>
-                    </div>
+                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(239,68,68,.11) <?= number_format($pCusto,2,'.','') ?>%, transparent <?= number_format($pCusto,2,'.','') ?>%);">
+                    <div class="fw-semibold text-danger"><?= format_brl($custo) ?></div>
+                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($custoMedia) ?></small>
                   </td>
 
                   <!-- Desp. Operacionais -->
-                  <td class="py-3">
-                    <div class="fw-semibold text-danger text-end"><?= format_brl($despOp) ?></div>
-                    <small class="text-muted d-block text-end" style="font-size: .68rem;">Méd: <?= format_brl($despOpMedia) ?></small>
-                    <div style="height:4px; background:#fee2e2; border-radius:999px; margin-top:4px;">
-                      <div style="height:100%; width:<?= number_format($pDespOp,2,'.','') ?>%; background:#f97316; border-radius:999px; transition:width .4s;"></div>
-                    </div>
+                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(249,115,22,.11) <?= number_format($pDespOp,2,'.','') ?>%, transparent <?= number_format($pDespOp,2,'.','') ?>%);">
+                    <div class="fw-semibold text-danger"><?= format_brl($despOp) ?></div>
+                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($despOpMedia) ?></small>
                   </td>
 
                   <!-- Desp. Administrativas -->
-                  <td class="py-3">
-                    <div class="fw-semibold text-danger text-end"><?= format_brl($despAdm) ?></div>
-                    <small class="text-muted d-block text-end" style="font-size: .68rem;">Méd: <?= format_brl($despAdmMedia) ?></small>
-                    <div style="height:4px; background:#fee2e2; border-radius:999px; margin-top:4px;">
-                      <div style="height:100%; width:<?= number_format($pDespAdm,2,'.','') ?>%; background:#fb7185; border-radius:999px; transition:width .4s;"></div>
-                    </div>
+                  <td class="py-2 text-end" style="background: linear-gradient(to left, rgba(251,113,133,.11) <?= number_format($pDespAdm,2,'.','') ?>%, transparent <?= number_format($pDespAdm,2,'.','') ?>%);">
+                    <div class="fw-semibold text-danger"><?= format_brl($despAdm) ?></div>
+                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($despAdmMedia) ?></small>
                   </td>
 
                   <!-- Resultado -->
-                  <td class="py-3">
-                    <div class="fw-bold <?= $resultado < 0 ? 'text-danger' : 'text-success' ?> text-end"><?= format_brl($resultado) ?></div>
-                    <small class="text-muted d-block text-end" style="font-size: .68rem;">Méd: <?= format_brl($resultadoMedia) ?></small>
-                    <div style="height:4px; background:<?= $resultado < 0 ? '#fee2e2' : '#dcfce7' ?>; border-radius:999px; margin-top:4px;">
-                      <div style="height:100%; width:<?= number_format($pResultado,2,'.','') ?>%; background:<?= $resultado < 0 ? '#ef4444' : '#22c55e' ?>; border-radius:999px; transition:width .4s;"></div>
-                    </div>
+                  <td class="py-2 text-end" style="background: linear-gradient(to left, <?= $resultado < 0 ? 'rgba(239,68,68,.13)' : 'rgba(34,197,94,.13)' ?> <?= number_format($pResultado,2,'.','') ?>%, transparent <?= number_format($pResultado,2,'.','') ?>%);">
+                    <div class="fw-bold <?= $resultado < 0 ? 'text-danger' : 'text-success' ?>"><?= format_brl($resultado) ?></div>
+                    <small class="text-muted" style="font-size: .68rem;">Méd: <?= format_brl($resultadoMedia) ?></small>
                   </td>
 
                   <!-- Margem -->
@@ -403,30 +385,12 @@
               <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
                 <tr>
                   <td class="py-3 fw-bold" style="color: #1e293b;">TOTAL GERAL</td>
-                  <td class="py-3 fw-bold text-success text-end">
-                    <?= format_brl(array_sum(array_map(fn($u) => (float)$u['receita_acum'], $accountComparison['rows']))) ?>
-                    <div style="height:4px; background:#dcfce7; border-radius:999px; margin-top:4px;"><div style="height:100%; width:100%; background:#22c55e; border-radius:999px;"></div></div>
-                  </td>
-                  <td class="py-3 fw-bold text-warning text-end">
-                    <?= format_brl(array_sum(array_map(fn($u) => (float)$u['devolucoes_acum'], $accountComparison['rows']))) ?>
-                    <div style="height:4px; background:#fef9c3; border-radius:999px; margin-top:4px;"><div style="height:100%; width:100%; background:#eab308; border-radius:999px;"></div></div>
-                  </td>
-                  <td class="py-3 fw-bold text-danger text-end">
-                    <?= format_brl(array_sum(array_map(fn($u) => (float)$u['custo_acum'], $accountComparison['rows']))) ?>
-                    <div style="height:4px; background:#fee2e2; border-radius:999px; margin-top:4px;"><div style="height:100%; width:100%; background:#ef4444; border-radius:999px;"></div></div>
-                  </td>
-                  <td class="py-3 fw-bold text-danger text-end">
-                    <?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_operacionais_acum'], $accountComparison['rows']))) ?>
-                    <div style="height:4px; background:#fee2e2; border-radius:999px; margin-top:4px;"><div style="height:100%; width:100%; background:#f97316; border-radius:999px;"></div></div>
-                  </td>
-                  <td class="py-3 fw-bold text-danger text-end">
-                    <?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_administrativas_acum'], $accountComparison['rows']))) ?>
-                    <div style="height:4px; background:#fee2e2; border-radius:999px; margin-top:4px;"><div style="height:100%; width:100%; background:#fb7185; border-radius:999px;"></div></div>
-                  </td>
-                  <td class="py-3 fw-bold <?= (float)($accTotals['resultado'] ?? 0) < 0 ? 'text-danger' : 'text-success' ?> text-end">
-                    <?= format_brl((float)($accTotals['resultado'] ?? 0)) ?>
-                    <div style="height:4px; background:<?= (float)($accTotals['resultado'] ?? 0) < 0 ? '#fee2e2' : '#dcfce7' ?>; border-radius:999px; margin-top:4px;"><div style="height:100%; width:100%; background:<?= (float)($accTotals['resultado'] ?? 0) < 0 ? '#ef4444' : '#22c55e' ?>; border-radius:999px;"></div></div>
-                  </td>
+                  <td class="py-2 fw-bold text-success text-end" style="background:rgba(34,197,94,.08);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['receita_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-2 fw-bold text-warning text-end" style="background:rgba(234,179,8,.08);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['devolucoes_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-2 fw-bold text-danger text-end" style="background:rgba(239,68,68,.07);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['custo_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-2 fw-bold text-danger text-end" style="background:rgba(249,115,22,.07);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_operacionais_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-2 fw-bold text-danger text-end" style="background:rgba(251,113,133,.07);"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_administrativas_acum'], $accountComparison['rows']))) ?></td>
+                  <td class="py-2 fw-bold <?= (float)($accTotals['resultado'] ?? 0) < 0 ? 'text-danger' : 'text-success' ?> text-end" style="background:<?= (float)($accTotals['resultado'] ?? 0) < 0 ? 'rgba(239,68,68,.08)' : 'rgba(34,197,94,.08)' ?>"><?= format_brl((float)($accTotals['resultado'] ?? 0)) ?></td>
                   <td class="py-3 text-center">
                     <?php
                       $totalMargin = (float)($accTotals['receita'] ?? 0) > 0
