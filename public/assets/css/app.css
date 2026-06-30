@@ -673,7 +673,7 @@ body {
   font-size: .78rem;
   letter-spacing: .04em;
   white-space: nowrap;
-  padding: .44rem .38rem;
+  padding: .44rem .24rem;
 }
 
 .dre-report-scroll.is-scrolled-y .dre-report-table thead th {
@@ -683,7 +683,7 @@ body {
 .dre-report-table tbody td {
   border-bottom: 1px solid #f1f5f9;
   background: #fff;
-  padding: .3rem .38rem;
+  padding: .3rem .24rem;
   white-space: nowrap;
 }
 
@@ -1120,12 +1120,12 @@ body {
   }
 
   .dre-report-table thead th {
-    padding: .38rem .32rem;
+    padding: .38rem .22rem;
     font-size: .7rem;
   }
 
   .dre-report-table tbody td {
-    padding: .26rem .32rem;
+    padding: .26rem .22rem;
   }
 
   .dre-label {
