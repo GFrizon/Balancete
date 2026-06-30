@@ -196,8 +196,6 @@ class DreController
                     'sort_month' => (int)$row['month'],
                     'values' => array_fill_keys($monthKeys, 0.0),
                     'types' => array_fill_keys($monthKeys, ''),
-                    'debit_total' => 0.0,
-                    'credit_total' => 0.0,
                     'movimento' => 0.0,
                     'acumulado' => 0.0,
                     'media' => 0.0,
@@ -216,8 +214,6 @@ class DreController
 
             $amount = (float)$row['signed_movement'];
             $matrix[$key]['values'][$monthKey] = ($matrix[$key]['values'][$monthKey] ?? 0.0) + $amount;
-            $matrix[$key]['debit_total'] += abs((float)($row['debit'] ?? 0));
-            $matrix[$key]['credit_total'] += abs((float)($row['credit'] ?? 0));
             $matrix[$key]['movimento'] += $amount;
 
             $type = (string)($row['movement_type'] ?? '');
@@ -270,7 +266,9 @@ class DreController
         }
         unset($row);
 
-        $matrixRows = array_values($matrix);
+        $matrixRows = array_values(array_filter($matrix, static function (array $row): bool {
+            return !empty($row['has_children']) || abs((float)$row['acumulado']) >= 0.005;
+        }));
         $parentLineByCode = [];
         foreach ($matrixRows as $row) {
             if (!empty($row['is_analytical'])) {
@@ -316,7 +314,10 @@ class DreController
             ];
         });
 
-        return $this->attachHierarchy($matrixRows);
+        return array_values(array_filter(
+            $this->attachHierarchy($matrixRows),
+            static fn (array $row): bool => !empty($row['has_children']) || abs((float)$row['acumulado']) >= 0.005
+        ));
     }
 
     private function attachHierarchy(array $rows): array

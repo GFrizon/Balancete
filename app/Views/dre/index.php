@@ -132,8 +132,6 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     <div class="col-md-3">
       <div class="card shadow-sm h-100 dre-summary-card">
         <div class="card-body py-2">
-          <div class="text-muted small">Débito / Crédito</div>
-          <div class="fw-bold fs-6"><?= format_brl($totalDebit) ?> <span class="text-muted">/</span> <?= format_brl($totalCredit) ?></div>
         </div>
       </div>
     </div>
@@ -148,9 +146,6 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
         <div class="text-muted small">Estrutura lida direto do balancete importado</div>
       </div>
       <div class="dre-tools">
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleDetails" title="Mostrar/ocultar colunas Débito/Crédito">
-          <i class="bi bi-eye-slash"></i><span class="d-none d-md-inline ms-1">D/C</span>
-        </button>
         <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleZeros" title="Ocultar/mostrar linhas zeradas">
           <i class="bi bi-filter"></i><span class="d-none d-md-inline ms-1">Zeros</span>
         </button>
@@ -165,13 +160,11 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     </div>
 
     <div class="dre-report-scroll">
-      <table class="table table-sm align-middle mb-0 dre-report-table hide-detail-cols" id="balanceteTree">
+      <table class="table table-sm align-middle mb-0 dre-report-table" id="balanceteTree">
         <thead>
           <tr>
             <th class="dre-sticky dre-code-col">Código</th>
             <th class="dre-sticky dre-desc-col">Descrição</th>
-            <th class="text-end dre-money-col dre-detail-col">Débito</th>
-            <th class="text-end dre-money-col dre-detail-col">Crédito</th>
             <?php foreach ($months as $month): ?>
             <th class="text-end dre-money-col dre-month-col"><?= e($month['label']) ?></th>
             <?php endforeach; ?>
@@ -185,8 +178,6 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             if (!empty($row['hide_duplicate'])) continue;
             $indent = (int)$row['indentation_level'];
             $hasChildren = !empty($row['has_children']);
-            $debit = (float)($row['debit_total'] ?? 0);
-            $credit = (float)($row['credit_total'] ?? 0);
             $acumulado = (float)($row['acumulado'] ?? 0);
             $media = (float)($row['media'] ?? 0);
             $rowKind = !empty($row['is_section']) ? 'section' : ($hasChildren ? 'group' : 'item');
@@ -196,7 +187,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             } elseif ($rowKind === 'item' && !empty($row['is_analytical'])) {
                 $visualKind = 'analytical';
             }
-            $hasNonzero = !$hasChildren && (abs($acumulado) >= 0.005 || abs($debit) >= 0.005 || abs($credit) >= 0.005);
+            $hasNonzero = !$hasChildren && abs($acumulado) >= 0.005;
           ?>
           <tr id="<?= e($row['row_uid']) ?>"
               class="dre-tree-row dre-row-<?= e($rowKind) ?><?= ($hasNonzero ? ' has-nonzero' : '') ?>"
@@ -221,12 +212,6 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
                 <?php endif; ?>
                 <span class="dre-label-text"><?= e($row['account_description']) ?></span>
               </div>
-            </td>
-            <td class="text-end dre-money dre-detail-col <?= $debit > 0 ? 'is-negative' : '' ?>">
-              <?= $debit > 0 ? $formatSigned(-$debit) : '<span class="dre-zero">-</span>' ?>
-            </td>
-            <td class="text-end dre-money dre-detail-col <?= $credit > 0 ? 'is-positive' : '' ?>">
-              <?= $credit > 0 ? $formatSigned($credit) : '<span class="dre-zero">-</span>' ?>
             </td>
             <?php foreach ($months as $month): ?>
             <?php 
@@ -336,18 +321,6 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     toggleZerosBtn.classList.toggle('active', zerosHidden);
   });
 
-  // Toggle detail columns (Débito/Crédito)
-  const toggleDetailsBtn = document.getElementById('toggleDetails');
-  let detailsVisible = false;
-  toggleDetailsBtn?.addEventListener('click', () => {
-    detailsVisible = !detailsVisible;
-    table.classList.toggle('hide-detail-cols', !detailsVisible);
-    table.classList.toggle('show-detail-cols', detailsVisible);
-    const icon = toggleDetailsBtn.querySelector('i');
-    if (icon) icon.className = detailsVisible ? 'bi bi-eye' : 'bi bi-eye-slash';
-    toggleDetailsBtn.classList.toggle('active', detailsVisible);
-    updateScrollState();
-  });
 
   table.querySelectorAll('[data-toggle-group]').forEach(button => {
     button.addEventListener('click', event => {
@@ -395,3 +368,4 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
 JS; ?>
 
 <?php require APP_ROOT . '/app/Views/layout/footer.php'; ?>
+

@@ -661,9 +661,6 @@ body {
   table-layout: auto;
 }
 
-.dre-report-table.show-detail-cols {
-  min-width: max-content;
-}
 
 .dre-report-table thead th {
   position: sticky;
@@ -743,11 +740,6 @@ body {
   line-height: 1.15;
 }
 
-.dre-detail-col {
-  width: 120px;
-  min-width: 120px;
-  max-width: 120px;
-}
 
 .dre-label {
   display: flex;
@@ -918,7 +910,6 @@ body {
   background: #e8f0f8 !important;
 }
 
-/* Ocultar colunas de detalhe (Débito/Crédito) por padrão */
 /* Marcação visual baseada no tipo real da linha, não apenas no nível. */
 .dre-tree-row[data-kind="section"] td,
 .dre-tree-row[data-kind="section"] .dre-sticky {
@@ -993,13 +984,9 @@ body {
 .dre-tree-row[data-kind="analytical"]:hover td,
 .dre-tree-row[data-kind="analytical"]:hover .dre-sticky { background: #f8fafc !important; }
 
-.dre-report-table.hide-detail-cols .dre-detail-col {
-  display: none;
-}
 
 /* Estado ativo dos botões */
-#toggleZeros.active,
-#toggleDetails.active {
+#toggleZeros.active {
   background: #334155;
   color: #fff;
   border-color: #334155;
@@ -1127,11 +1114,6 @@ body {
     max-width: 112px;
   }
 
-  .dre-detail-col {
-    width: 98px;
-    min-width: 98px;
-    max-width: 98px;
-  }
 
   .dre-report-table {
     font-size: .76rem;
