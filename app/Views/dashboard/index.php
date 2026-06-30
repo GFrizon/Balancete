@@ -260,137 +260,114 @@
     <?php endif; ?>
   </div>
 
-  <!-- Detalhamento completo das contas por filial -->
+  <!-- Cards de detalhamento por filial -->
   <?php if (!empty($accountComparison['rows'])): ?>
+  <div class="mb-2 d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #dbeafe; border-radius: 8px;">
+      <i class="bi bi-grid text-primary"></i>
+    </div>
+    <div>
+      <h5 class="fw-semibold mb-0" style="color: #1e293b;">Detalhamento por Filial</h5>
+      <small class="text-muted"><?= e($accPeriod['label'] ?? '') ?> — Acumulado / Média Mensal</small>
+    </div>
+  </div>
   <div class="row g-3 mb-5">
-    <div class="col-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-body p-4">
-          <div class="d-flex align-items-center justify-content-between mb-4">
-            <div class="d-flex align-items-center gap-2">
-              <div class="d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #dbeafe; border-radius: 8px;">
-                <i class="bi bi-table text-primary"></i>
+    <?php foreach ($accountComparison['rows'] as $unit): ?>
+    <?php
+      $receita        = (float)$unit['receita_acum'];
+      $receitaMedia   = (float)$unit['receita_media'];
+      $devolucoes     = (float)$unit['devolucoes_acum'];
+      $devolucoesMedia= (float)$unit['devolucoes_media'];
+      $custo          = (float)$unit['custo_acum'];
+      $custoMedia     = (float)$unit['custo_media'];
+      $despOp         = (float)$unit['desp_operacionais_acum'];
+      $despOpMedia    = (float)$unit['desp_operacionais_media'];
+      $despAdm        = (float)$unit['desp_administrativas_acum'];
+      $despAdmMedia   = (float)$unit['desp_administrativas_media'];
+      $resultado      = (float)$unit['resultado_acum'];
+      $resultadoMedia = (float)$unit['resultado_media'];
+      $margin         = (float)$unit['margin'];
+      $isBest  = $bestMargin  && $unit['unit_id'] === $bestMargin['unit_id'];
+      $isWorst = $worstResult && $unit['unit_id'] === $worstResult['unit_id'] && $resultado < 0;
+      $marginPct = min(100, max(0, abs($margin)));
+      $cardBorder = $isBest ? '#22c55e' : ($isWorst ? '#ef4444' : '#e2e8f0');
+      $marginColor = $margin >= 10 ? '#22c55e' : ($margin >= 5 ? '#eab308' : ($margin >= 0 ? '#f97316' : '#ef4444'));
+    ?>
+    <div class="col-sm-6 col-xl-4">
+      <div class="card border-0 shadow-sm h-100" style="border-left: 3px solid <?= $cardBorder ?> !important; border-radius: 12px;">
+        <div class="card-body p-3">
+
+          <!-- Cabeçalho do card -->
+          <div class="d-flex align-items-start justify-content-between mb-3">
+            <div>
+              <div class="fw-bold" style="color: #1e293b; font-size: .95rem;">
+                <?= e($unit['unit_code']) ?>
+                <?php if ($isBest): ?><i class="bi bi-trophy-fill text-warning ms-1" style="font-size:.8rem;" title="Melhor margem"></i><?php endif; ?>
+                <?php if ($isWorst): ?><i class="bi bi-exclamation-triangle-fill text-danger ms-1" style="font-size:.8rem;" title="Pior resultado"></i><?php endif; ?>
               </div>
-              <div>
-                <h5 class="fw-semibold mb-0" style="color: #1e293b;">Detalhamento de Contas por Filial</h5>
-                <small class="text-muted"><?= e($accPeriod['label'] ?? '') ?> — Acumulado e Média Mensal</small>
+              <div class="text-muted" style="font-size: .72rem;"><?= e($unit['unit_name']) ?></div>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold" style="font-size: 1.1rem; color: <?= $marginColor ?>;"><?= number_format($margin, 1, ',', '.') ?>%</div>
+              <div class="text-muted" style="font-size: .65rem;">margem</div>
+            </div>
+          </div>
+
+          <!-- Barra de margem -->
+          <div style="height: 5px; background: #f1f5f9; border-radius: 999px; margin-bottom: 14px;">
+            <div style="height: 100%; width: <?= number_format(min(100, max(0, $margin)), 2, '.', '') ?>%; background: <?= $marginColor ?>; border-radius: 999px; transition: width .5s;"></div>
+          </div>
+
+          <!-- Métricas em grid 2x3 -->
+          <div class="row g-2" style="font-size: .75rem;">
+            <div class="col-6">
+              <div style="background: #f0fdf4; border-radius: 8px; padding: 8px 10px;">
+                <div class="text-muted mb-1" style="font-size:.65rem; text-transform:uppercase; letter-spacing:.04em;">Receita Líq.</div>
+                <div class="fw-semibold text-success" style="font-size:.82rem;"><?= format_brl($receita) ?></div>
+                <div class="text-muted" style="font-size:.65rem;">méd <?= format_brl($receitaMedia) ?></div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div style="background: <?= $resultado >= 0 ? '#f0fdf4' : '#fef2f2' ?>; border-radius: 8px; padding: 8px 10px;">
+                <div class="text-muted mb-1" style="font-size:.65rem; text-transform:uppercase; letter-spacing:.04em;">Resultado</div>
+                <div class="fw-bold <?= $resultado >= 0 ? 'text-success' : 'text-danger' ?>" style="font-size:.82rem;"><?= format_brl($resultado) ?></div>
+                <div class="text-muted" style="font-size:.65rem;">méd <?= format_brl($resultadoMedia) ?></div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div style="background: #fef2f2; border-radius: 8px; padding: 8px 10px;">
+                <div class="text-muted mb-1" style="font-size:.65rem; text-transform:uppercase; letter-spacing:.04em;">Custo Prod.</div>
+                <div class="fw-semibold text-danger" style="font-size:.82rem;"><?= format_brl($custo) ?></div>
+                <div class="text-muted" style="font-size:.65rem;">méd <?= format_brl($custoMedia) ?></div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div style="background: #fff7ed; border-radius: 8px; padding: 8px 10px;">
+                <div class="text-muted mb-1" style="font-size:.65rem; text-transform:uppercase; letter-spacing:.04em;">Desp. Op.</div>
+                <div class="fw-semibold" style="color:#f97316; font-size:.82rem;"><?= format_brl($despOp) ?></div>
+                <div class="text-muted" style="font-size:.65rem;">méd <?= format_brl($despOpMedia) ?></div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div style="background: #fff1f2; border-radius: 8px; padding: 8px 10px;">
+                <div class="text-muted mb-1" style="font-size:.65rem; text-transform:uppercase; letter-spacing:.04em;">Desp. Adm.</div>
+                <div class="fw-semibold" style="color:#fb7185; font-size:.82rem;"><?= format_brl($despAdm) ?></div>
+                <div class="text-muted" style="font-size:.65rem;">méd <?= format_brl($despAdmMedia) ?></div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div style="background: #fefce8; border-radius: 8px; padding: 8px 10px;">
+                <div class="text-muted mb-1" style="font-size:.65rem; text-transform:uppercase; letter-spacing:.04em;">Devoluções</div>
+                <div class="fw-semibold text-warning" style="font-size:.82rem;"><?= format_brl($devolucoes) ?></div>
+                <div class="text-muted" style="font-size:.65rem;">méd <?= format_brl($devolucoesMedia) ?></div>
               </div>
             </div>
           </div>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0 align-middle" style="font-size: .78rem;">
-              <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-                <tr>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 130px;">Filial</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 160px;">Receita Líquida</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 145px;">Devoluções</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 145px;">Custo Produtos</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 145px;">Desp. Operacionais</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 145px;">Desp. Administrativas</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 155px;">Resultado Líquido</th>
-                  <th class="border-0 text-center fw-semibold py-3" style="color: #475569; min-width: 80px;">Margem</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($accountComparison['rows'] as $unit): ?>
-                <?php
-                  $receita         = (float)$unit['receita_acum'];
-                  $receitaMedia    = (float)$unit['receita_media'];
-                  $devolucoes      = (float)$unit['devolucoes_acum'];
-                  $devolucoesMedia = (float)$unit['devolucoes_media'];
-                  $custo           = (float)$unit['custo_acum'];
-                  $custoMedia      = (float)$unit['custo_media'];
-                  $despOp          = (float)$unit['desp_operacionais_acum'];
-                  $despOpMedia     = (float)$unit['desp_operacionais_media'];
-                  $despAdm         = (float)$unit['desp_administrativas_acum'];
-                  $despAdmMedia    = (float)$unit['desp_administrativas_media'];
-                  $resultado       = (float)$unit['resultado_acum'];
-                  $resultadoMedia  = (float)$unit['resultado_media'];
-                  $margin          = (float)$unit['margin'];
-                  $isBest  = $bestMargin  && $unit['unit_id'] === $bestMargin['unit_id'];
-                  $isWorst = $worstResult && $unit['unit_id'] === $worstResult['unit_id'];
-                ?>
-                <tr style="border-bottom: 1px solid #f1f5f9; <?= $isBest ? 'background: #f0fdf4;' : ($isWorst && $resultado < 0 ? 'background: #fef2f2;' : '') ?>">
-                  <td class="py-3">
-                    <div class="fw-semibold" style="color: #1e293b;">
-                      <?= e($unit['unit_code']) ?>
-                      <?php if ($isBest): ?><i class="bi bi-trophy-fill text-warning ms-1" title="Melhor margem"></i><?php endif; ?>
-                      <?php if ($isWorst && $resultado < 0): ?><i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Pior resultado"></i><?php endif; ?>
-                    </div>
-                    <small class="text-muted" style="font-size: .7rem;"><?= e($unit['unit_name']) ?></small>
-                  </td>
 
-                  <!-- Receita -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-success"><?= format_brl($receita) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($receitaMedia) ?></small>
-                  </td>
-
-                  <!-- Devoluções -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-warning"><?= format_brl($devolucoes) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($devolucoesMedia) ?></small>
-                  </td>
-
-                  <!-- Custo -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-danger"><?= format_brl($custo) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($custoMedia) ?></small>
-                  </td>
-
-                  <!-- Desp. Operacionais -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-danger"><?= format_brl($despOp) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($despOpMedia) ?></small>
-                  </td>
-
-                  <!-- Desp. Administrativas -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-danger"><?= format_brl($despAdm) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($despAdmMedia) ?></small>
-                  </td>
-
-                  <!-- Resultado -->
-                  <td class="py-3 text-end">
-                    <div class="fw-bold <?= $resultado < 0 ? 'text-danger' : 'text-success' ?>"><?= format_brl($resultado) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($resultadoMedia) ?></small>
-                  </td>
-
-                  <!-- Margem -->
-                  <td class="py-3 text-center">
-                    <span class="badge <?= $margin >= 10 ? 'bg-success' : ($margin >= 5 ? 'bg-warning text-dark' : 'bg-danger') ?>" style="font-size: .75rem; padding: .4rem .6rem;">
-                      <?= number_format($margin, 1, ',', '.') ?>%
-                    </span>
-                  </td>
-                </tr>
-                <?php endforeach; ?>
-              </tbody>
-              <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
-                <tr>
-                  <td class="py-3 fw-bold" style="color: #1e293b;">TOTAL GERAL</td>
-                  <td class="py-3 fw-bold text-success text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['receita_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold text-warning text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['devolucoes_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold text-danger text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['custo_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold text-danger text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_operacionais_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold text-danger text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_administrativas_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold <?= (float)($accTotals['resultado'] ?? 0) < 0 ? 'text-danger' : 'text-success' ?> text-end"><?= format_brl((float)($accTotals['resultado'] ?? 0)) ?></td>
-                  <td class="py-3 text-center">
-                    <?php
-                      $totalMargin = (float)($accTotals['receita'] ?? 0) > 0
-                        ? ((float)($accTotals['resultado'] ?? 0) / (float)($accTotals['receita'] ?? 0)) * 100
-                        : 0.0;
-                    ?>
-                    <span class="badge <?= $totalMargin >= 10 ? 'bg-success' : ($totalMargin >= 5 ? 'bg-warning text-dark' : 'bg-danger') ?>" style="font-size: .75rem; padding: .4rem .6rem;">
-                      <?= number_format($totalMargin, 1, ',', '.') ?>%
-                    </span>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
         </div>
       </div>
     </div>
+    <?php endforeach; ?>
   </div>
   <?php endif; ?>
 
