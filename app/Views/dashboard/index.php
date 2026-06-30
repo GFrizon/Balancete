@@ -175,8 +175,19 @@
               <small class="text-muted"><?= e($unitComparison['period']['label'] ?? '') ?></small>
             </div>
           </div>
-          <div class="mb-4" style="height: 220px;">
-            <canvas id="unitComparisonChart"></canvas>
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <div class="fw-semibold mb-2" style="font-size: .8rem; color: #475569;">Receita</div>
+              <div style="height: 180px;">
+                <canvas id="unitRevenueChart"></canvas>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="fw-semibold mb-2" style="font-size: .8rem; color: #475569;">Resultado</div>
+              <div style="height: 180px;">
+                <canvas id="unitResultChart"></canvas>
+              </div>
+            </div>
           </div>
           <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle" style="font-size: .875rem;">
@@ -387,26 +398,30 @@
 <?php endif; ?>
 
 <?php if (!empty($unitComparison['rows'])): ?>
-  const unitCtx = document.getElementById('unitComparisonChart')?.getContext('2d');
-  if (unitCtx) {
-    new Chart(unitCtx, {
+  const unitLabels = <?= json_encode(array_map(fn($u) => $u['unit_code'], $unitComparison['rows'])) ?>;
+  const currencyTick = function(value) {
+    return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  };
+  const currencyTooltip = function(context) {
+    const value = Number(context.raw || 0);
+    return `${context.dataset.label}: ${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+  };
+  const buildUnitChart = function(elementId, label, values, color, borderColor) {
+    const chartCtx = document.getElementById(elementId)?.getContext('2d');
+    if (!chartCtx) {
+      return;
+    }
+
+    new Chart(chartCtx, {
       type: 'bar',
       data: {
-        labels: <?= json_encode(array_map(fn($u) => $u['unit_code'], $unitComparison['rows'])) ?>,
+        labels: unitLabels,
         datasets: [
           {
-            label: 'Receita',
-            data: <?= json_encode(array_map(fn($u) => (float)$u['revenue'], $unitComparison['rows'])) ?>,
-            backgroundColor: 'rgba(52, 211, 153, 0.72)',
-            borderColor: '#10b981',
-            borderWidth: 1,
-            borderRadius: 4
-          },
-          {
-            label: 'Resultado',
-            data: <?= json_encode(array_map(fn($u) => (float)$u['result'], $unitComparison['rows'])) ?>,
-            backgroundColor: 'rgba(96, 165, 250, 0.72)',
-            borderColor: '#3b82f6',
+            label: label,
+            data: values,
+            backgroundColor: color,
+            borderColor: borderColor,
             borderWidth: 1,
             borderRadius: 4
           }
@@ -419,19 +434,11 @@
         interaction: { mode: 'index', intersect: false },
         plugins: {
           legend: {
-            position: 'top',
-            labels: {
-              usePointStyle: true,
-              boxWidth: 8,
-              font: { size: 12 }
-            }
+            display: false
           },
           tooltip: {
             callbacks: {
-              label: function(context) {
-                const value = Number(context.raw || 0);
-                return `${context.dataset.label}: ${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-              }
+              label: currencyTooltip
             }
           }
         },
@@ -441,9 +448,7 @@
             ticks: {
               font: { size: 11 },
               color: '#94a3b8',
-              callback: function(value) {
-                return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
-              }
+              callback: currencyTick
             }
           },
           y: {
@@ -453,7 +458,22 @@
         }
       }
     });
-  }
+  };
+
+  buildUnitChart(
+    'unitRevenueChart',
+    'Receita',
+    <?= json_encode(array_map(fn($u) => (float)$u['revenue'], $unitComparison['rows'])) ?>,
+    'rgba(52, 211, 153, 0.72)',
+    '#10b981'
+  );
+  buildUnitChart(
+    'unitResultChart',
+    'Resultado',
+    <?= json_encode(array_map(fn($u) => (float)$u['result'], $unitComparison['rows'])) ?>,
+    'rgba(96, 165, 250, 0.72)',
+    '#3b82f6'
+  );
 <?php endif; ?>
 </script>
 <?php endif; ?>
