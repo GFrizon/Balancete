@@ -260,129 +260,177 @@
     <?php endif; ?>
   </div>
 
-  <!-- Detalhamento completo das contas por filial -->
+  <!-- Comparativo percentual transposto: contas nas linhas, filiais nas colunas -->
   <?php if (!empty($accountComparison['rows'])): ?>
+  <?php
+    $rows = $accountComparison['rows'];
+    // Pré-calcular percentuais por filial (base = receita)
+    $units = [];
+    foreach ($rows as $u) {
+      $rec = (float)$u['receita_acum'];
+      $base = $rec > 0 ? $rec : 1;
+      $units[] = [
+        'code'      => $u['unit_code'],
+        'name'      => $u['unit_name'],
+        'unit_id'   => $u['unit_id'],
+        'receita'   => $rec,
+        'dev_pct'   => (float)$u['devolucoes_acum']          / $base * 100,
+        'dev_val'   => (float)$u['devolucoes_acum'],
+        'custo_pct' => (float)$u['custo_acum']               / $base * 100,
+        'custo_val' => (float)$u['custo_acum'],
+        'op_pct'    => (float)$u['desp_operacionais_acum']   / $base * 100,
+        'op_val'    => (float)$u['desp_operacionais_acum'],
+        'adm_pct'   => (float)$u['desp_administrativas_acum']/ $base * 100,
+        'adm_val'   => (float)$u['desp_administrativas_acum'],
+        'res_pct'   => (float)$u['resultado_acum']            / $base * 100,
+        'res_val'   => (float)$u['resultado_acum'],
+        'margin'    => (float)$u['margin'],
+        'isBest'    => $bestMargin  && $u['unit_id'] === $bestMargin['unit_id'],
+        'isWorst'   => $worstResult && $u['unit_id'] === $worstResult['unit_id'] && (float)$u['resultado_acum'] < 0,
+      ];
+    }
+    // Total geral
+    $totalRec = array_sum(array_map(fn($u) => $u['receita'], $units));
+    $totalBase = $totalRec > 0 ? $totalRec : 1;
+    $totalRow = [
+      'dev_pct'   => array_sum(array_map(fn($u) => (float)(isset($u['dev_val'])  ? $u['dev_val']  : 0), $units)) / $totalBase * 100,
+      'custo_pct' => array_sum(array_map(fn($u) => $u['custo_val'], $units)) / $totalBase * 100,
+      'op_pct'    => array_sum(array_map(fn($u) => $u['op_val'],    $units)) / $totalBase * 100,
+      'adm_pct'   => array_sum(array_map(fn($u) => $u['adm_val'],   $units)) / $totalBase * 100,
+      'res_pct'   => (float)($accTotals['resultado'] ?? 0) / $totalBase * 100,
+    ];
+
+    // Helper: cor de fundo por percentual e tipo
+    function pctBg(float $pct, string $type): string {
+      if ($type === 'resultado') {
+        if ($pct >= 10)  return '#f0fdf4';
+        if ($pct >= 5)   return '#fefce8';
+        if ($pct >= 0)   return '#fff7ed';
+        return '#fef2f2';
+      }
+      // despesas/custos: quanto maior, mais intenso o vermelho
+      if ($pct >= 80) return '#fecaca';
+      if ($pct >= 60) return '#fee2e2';
+      if ($pct >= 40) return '#fff1f2';
+      return 'transparent';
+    }
+    function pctColor(float $pct, string $type): string {
+      if ($type === 'resultado') {
+        return $pct >= 5 ? '#16a34a' : ($pct >= 0 ? '#d97706' : '#dc2626');
+      }
+      return $pct >= 60 ? '#dc2626' : ($pct >= 40 ? '#d97706' : '#475569');
+    }
+  ?>
   <div class="row g-3 mb-5">
     <div class="col-12">
       <div class="card shadow-sm border-0">
-        <div class="card-body p-4">
-          <div class="d-flex align-items-center justify-content-between mb-4">
-            <div class="d-flex align-items-center gap-2">
-              <div class="d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #dbeafe; border-radius: 8px;">
-                <i class="bi bi-table text-primary"></i>
-              </div>
-              <div>
-                <h5 class="fw-semibold mb-0" style="color: #1e293b;">Detalhamento de Contas por Filial</h5>
-                <small class="text-muted"><?= e($accPeriod['label'] ?? '') ?> — Acumulado e Média Mensal</small>
-              </div>
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; background: #dbeafe; border-radius: 7px;">
+              <i class="bi bi-percent text-primary" style="font-size:.8rem;"></i>
+            </div>
+            <div>
+              <h5 class="fw-semibold mb-0" style="color: #1e293b; font-size:.95rem;">Comparativo % por Filial</h5>
+              <small class="text-muted"><?= e($accPeriod['label'] ?? '') ?> · % sobre a Receita Líquida · passe o mouse para ver o valor</small>
             </div>
           </div>
           <div class="table-responsive">
-            <table class="table table-sm table-hover mb-0 align-middle" style="font-size: .78rem;">
-              <thead style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+            <table class="table table-sm mb-0" style="font-size:.8rem; border-collapse:separate; border-spacing:0;">
+              <thead>
                 <tr>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 130px;">Filial</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 160px;">Receita Líquida</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 145px;">Devoluções</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 145px;">Custo Produtos</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 145px;">Desp. Operacionais</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 145px;">Desp. Administrativas</th>
-                  <th class="border-0 fw-semibold py-3" style="color: #475569; min-width: 155px;">Resultado Líquido</th>
-                  <th class="border-0 text-center fw-semibold py-3" style="color: #475569; min-width: 80px;">Margem</th>
+                  <th class="border-0 py-2" style="color:#94a3b8; font-weight:500; font-size:.7rem; text-transform:uppercase; letter-spacing:.04em; min-width:130px;">Conta</th>
+                  <?php foreach ($units as $u): ?>
+                  <th class="border-0 py-2 text-center" style="min-width:80px;">
+                    <div class="fw-bold" style="color:#1e293b; font-size:.82rem;">
+                      <?= e($u['code']) ?>
+                      <?php if ($u['isBest']): ?><i class="bi bi-trophy-fill text-warning" style="font-size:.65rem;" title="Melhor margem"></i><?php endif; ?>
+                      <?php if ($u['isWorst']): ?><i class="bi bi-exclamation-triangle-fill text-danger" style="font-size:.65rem;" title="Pior resultado"></i><?php endif; ?>
+                    </div>
+                    <div class="text-muted" style="font-size:.62rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:80px;"><?= e($u['name']) ?></div>
+                  </th>
+                  <?php endforeach; ?>
+                  <th class="border-0 py-2 text-center" style="min-width:70px; color:#94a3b8; font-weight:500; font-size:.7rem;">TOTAL</th>
                 </tr>
               </thead>
               <tbody>
-                <?php foreach ($accountComparison['rows'] as $unit): ?>
                 <?php
-                  $receita         = (float)$unit['receita_acum'];
-                  $receitaMedia    = (float)$unit['receita_media'];
-                  $devolucoes      = (float)$unit['devolucoes_acum'];
-                  $devolucoesMedia = (float)$unit['devolucoes_media'];
-                  $custo           = (float)$unit['custo_acum'];
-                  $custoMedia      = (float)$unit['custo_media'];
-                  $despOp          = (float)$unit['desp_operacionais_acum'];
-                  $despOpMedia     = (float)$unit['desp_operacionais_media'];
-                  $despAdm         = (float)$unit['desp_administrativas_acum'];
-                  $despAdmMedia    = (float)$unit['desp_administrativas_media'];
-                  $resultado       = (float)$unit['resultado_acum'];
-                  $resultadoMedia  = (float)$unit['resultado_media'];
-                  $margin          = (float)$unit['margin'];
-                  $isBest  = $bestMargin  && $unit['unit_id'] === $bestMargin['unit_id'];
-                  $isWorst = $worstResult && $unit['unit_id'] === $worstResult['unit_id'];
+                  $metricLines = [
+                    ['key'=>'dev',   'label'=>'Devoluções',        'icon'=>'bi-arrow-return-left', 'type'=>'expense'],
+                    ['key'=>'custo', 'label'=>'Custo de Produtos', 'icon'=>'bi-box-seam',          'type'=>'expense'],
+                    ['key'=>'op',    'label'=>'Desp. Operacionais','icon'=>'bi-gear',               'type'=>'expense'],
+                    ['key'=>'adm',   'label'=>'Desp. Administrativas','icon'=>'bi-building',        'type'=>'expense'],
+                    ['key'=>'res',   'label'=>'Resultado Líquido', 'icon'=>'bi-graph-up-arrow',     'type'=>'resultado'],
+                  ];
                 ?>
-                <tr style="border-bottom: 1px solid #f1f5f9; <?= $isBest ? 'background: #f0fdf4;' : ($isWorst && $resultado < 0 ? 'background: #fef2f2;' : '') ?>">
-                  <td class="py-3">
-                    <div class="fw-semibold" style="color: #1e293b;">
-                      <?= e($unit['unit_code']) ?>
-                      <?php if ($isBest): ?><i class="bi bi-trophy-fill text-warning ms-1" title="Melhor margem"></i><?php endif; ?>
-                      <?php if ($isWorst && $resultado < 0): ?><i class="bi bi-exclamation-triangle-fill text-danger ms-1" title="Pior resultado"></i><?php endif; ?>
-                    </div>
-                    <small class="text-muted" style="font-size: .7rem;"><?= e($unit['unit_name']) ?></small>
+                <!-- Receita (valor absoluto como referência) -->
+                <tr style="border-top: 1px solid #f1f5f9;">
+                  <td class="py-2 fw-semibold" style="color:#16a34a; font-size:.78rem;">
+                    <i class="bi bi-currency-dollar me-1" style="font-size:.7rem;"></i>Receita Líquida
                   </td>
-
-                  <!-- Receita -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-success"><?= format_brl($receita) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($receitaMedia) ?></small>
+                  <?php foreach ($units as $u): ?>
+                  <td class="py-2 text-center fw-semibold" style="color:#16a34a; background:#f0fdf4; font-size:.78rem;">
+                    <?= format_brl($u['receita']) ?>
                   </td>
+                  <?php endforeach; ?>
+                  <td class="py-2 text-center fw-bold" style="color:#16a34a; background:#dcfce7; font-size:.78rem;"><?= format_brl($totalRec) ?></td>
+                </tr>
 
-                  <!-- Devoluções -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-warning"><?= format_brl($devolucoes) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($devolucoesMedia) ?></small>
+                <?php foreach ($metricLines as $i => $line): ?>
+                <?php
+                  $pctKey = $line['key'].'_pct';
+                  $valKey = $line['key'].'_val';
+                  $isRes  = $line['type'] === 'resultado';
+                  $totalPct = $totalRow[$line['key'].'_pct'];
+                ?>
+                <tr style="border-top: 1px solid #f8fafc;">
+                  <td class="py-2" style="color:#475569; font-size:.78rem;">
+                    <i class="bi <?= $line['icon'] ?> me-1" style="font-size:.7rem;"></i><?= $line['label'] ?>
                   </td>
-
-                  <!-- Custo -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-danger"><?= format_brl($custo) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($custoMedia) ?></small>
+                  <?php foreach ($units as $u): ?>
+                  <?php
+                    $pct = $u[$pctKey];
+                    $val = $isRes ? $u['res_val'] : $u[$valKey];
+                    $bg  = pctBg($pct, $line['type']);
+                    $clr = pctColor($pct, $line['type']);
+                  ?>
+                  <td class="py-2 text-center" style="background:<?= $bg ?>;" title="<?= format_brl($val) ?>">
+                    <span class="fw-semibold" style="color:<?= $clr ?>; font-size:.82rem;"><?= number_format($pct, 1, ',', '.') ?>%</span>
                   </td>
-
-                  <!-- Desp. Operacionais -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-danger"><?= format_brl($despOp) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($despOpMedia) ?></small>
-                  </td>
-
-                  <!-- Desp. Administrativas -->
-                  <td class="py-3 text-end">
-                    <div class="fw-semibold text-danger"><?= format_brl($despAdm) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($despAdmMedia) ?></small>
-                  </td>
-
-                  <!-- Resultado -->
-                  <td class="py-3 text-end">
-                    <div class="fw-bold <?= $resultado < 0 ? 'text-danger' : 'text-success' ?>"><?= format_brl($resultado) ?></div>
-                    <small class="text-muted" style="font-size: .7rem;">Méd: <?= format_brl($resultadoMedia) ?></small>
-                  </td>
-
-                  <!-- Margem -->
-                  <td class="py-3 text-center">
-                    <span class="badge <?= $margin >= 10 ? 'bg-success' : ($margin >= 5 ? 'bg-warning text-dark' : 'bg-danger') ?>" style="font-size: .75rem; padding: .4rem .6rem;">
-                      <?= number_format($margin, 1, ',', '.') ?>%
-                    </span>
+                  <?php endforeach; ?>
+                  <?php
+                    $tbg  = pctBg($totalPct, $line['type']);
+                    $tclr = pctColor($totalPct, $line['type']);
+                  ?>
+                  <td class="py-2 text-center fw-bold" style="background:<?= $tbg ?>;">
+                    <span style="color:<?= $tclr ?>; font-size:.82rem;"><?= number_format($totalPct, 1, ',', '.') ?>%</span>
                   </td>
                 </tr>
                 <?php endforeach; ?>
+
+                <!-- Linha de margem (= res_pct, já inclusa, mas destacada) -->
               </tbody>
-              <tfoot style="background: #f8fafc; border-top: 2px solid #e2e8f0;">
-                <tr>
-                  <td class="py-3 fw-bold" style="color: #1e293b;">TOTAL GERAL</td>
-                  <td class="py-3 fw-bold text-success text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['receita_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold text-warning text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['devolucoes_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold text-danger text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['custo_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold text-danger text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_operacionais_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold text-danger text-end"><?= format_brl(array_sum(array_map(fn($u) => (float)$u['desp_administrativas_acum'], $accountComparison['rows']))) ?></td>
-                  <td class="py-3 fw-bold <?= (float)($accTotals['resultado'] ?? 0) < 0 ? 'text-danger' : 'text-success' ?> text-end"><?= format_brl((float)($accTotals['resultado'] ?? 0)) ?></td>
-                  <td class="py-3 text-center">
-                    <?php
-                      $totalMargin = (float)($accTotals['receita'] ?? 0) > 0
-                        ? ((float)($accTotals['resultado'] ?? 0) / (float)($accTotals['receita'] ?? 0)) * 100
-                        : 0.0;
-                    ?>
-                    <span class="badge <?= $totalMargin >= 10 ? 'bg-success' : ($totalMargin >= 5 ? 'bg-warning text-dark' : 'bg-danger') ?>" style="font-size: .75rem; padding: .4rem .6rem;">
-                      <?= number_format($totalMargin, 1, ',', '.') ?>%
-                    </span>
+              <tfoot>
+                <tr style="border-top: 2px solid #e2e8f0;">
+                  <td class="py-2 fw-bold" style="color:#1e293b; font-size:.78rem;">
+                    <i class="bi bi-speedometer2 me-1" style="font-size:.7rem;"></i>Margem
+                  </td>
+                  <?php foreach ($units as $u): ?>
+                  <?php
+                    $m   = $u['margin'];
+                    $mbg = $m >= 10 ? '#f0fdf4' : ($m >= 5 ? '#fefce8' : ($m >= 0 ? '#fff7ed' : '#fef2f2'));
+                    $mc  = $m >= 10 ? '#16a34a' : ($m >= 5 ? '#ca8a04' : ($m >= 0 ? '#d97706' : '#dc2626'));
+                  ?>
+                  <td class="py-2 text-center" style="background:<?= $mbg ?>;">
+                    <span class="fw-bold" style="color:<?= $mc ?>; font-size:.85rem;"><?= number_format($m, 1, ',', '.') ?>%</span>
+                  </td>
+                  <?php endforeach; ?>
+                  <?php
+                    $tm  = $totalRow['res_pct'];
+                    $tmbg = $tm >= 10 ? '#f0fdf4' : ($tm >= 5 ? '#fefce8' : ($tm >= 0 ? '#fff7ed' : '#fef2f2'));
+                    $tmc  = $tm >= 10 ? '#16a34a' : ($tm >= 5 ? '#ca8a04' : ($tm >= 0 ? '#d97706' : '#dc2626'));
+                  ?>
+                  <td class="py-2 text-center" style="background:<?= $tmbg ?>;">
+                    <span class="fw-bold" style="color:<?= $tmc ?>; font-size:.85rem;"><?= number_format($tm, 1, ',', '.') ?>%</span>
                   </td>
                 </tr>
               </tfoot>
