@@ -747,6 +747,22 @@ body {
   gap: .35rem;
   padding-left: calc(var(--level) * 22px);
   min-width: 0;
+  position: relative;
+}
+
+.dre-tree-row[data-level="2"] .dre-label::before,
+.dre-tree-row[data-level="3"] .dre-label::before,
+.dre-tree-row[data-level="4"] .dre-label::before,
+.dre-tree-row[data-level="5"] .dre-label::before {
+  content: "";
+  position: absolute;
+  top: .18rem;
+  bottom: .18rem;
+  left: calc(var(--level) * 22px - 12px);
+  width: 2px;
+  border-radius: 999px;
+  background: #dbeafe;
+  opacity: .75;
 }
 
 .dre-label-text {
@@ -994,11 +1010,11 @@ body {
 }
 
 .dre-tree-row[data-kind="analytical"] td {
-  background: #ffffff !important;
+  background: #f8fbff !important;
 }
 
 .dre-tree-row[data-kind="analytical"] .dre-sticky {
-  background: #f3f7fb !important;
+  background: #f2f7fc !important;
 }
 
 .dre-tree-row[data-kind="account-group"]:hover td,
