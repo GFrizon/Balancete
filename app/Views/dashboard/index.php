@@ -167,13 +167,12 @@
       $unitTotals = $unitComparison['totals'] ?? [];
       $unitTotalRevenue = (float)($unitTotals['revenue'] ?? 0);
       $unitTotalResult = (float)($unitTotals['result'] ?? 0);
-      $bestMarginUnit = $unitTotals['best_margin'] ?? null;
     ?>
     <div class="col-lg-6">
       <div class="card shadow-sm border-0 h-100">
-        <div class="card-body p-4">
-          <div class="d-flex align-items-center gap-2 mb-4">
-            <div class="d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #ecfdf5; border-radius: 8px;">
+        <div class="card-body p-3">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <div class="d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; background: #ecfdf5; border-radius: 7px;">
               <i class="bi bi-buildings text-success"></i>
             </div>
             <div>
@@ -181,48 +180,13 @@
               <small class="text-muted"><?= e($unitComparison['period']['label'] ?? '') ?></small>
             </div>
           </div>
-          <div class="row g-2 mb-3">
-            <div class="col-6">
-              <div class="rounded-2 p-2" style="background: #f8fafc;">
-                <div class="text-muted" style="font-size: .72rem;">Receita total</div>
-                <div class="fw-semibold" style="color: #1e293b;"><?= format_brl($unitTotalRevenue) ?></div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="rounded-2 p-2" style="background: #f8fafc;">
-                <div class="text-muted" style="font-size: .72rem;">Resultado total</div>
-                <div class="fw-semibold <?= $unitTotalResult < 0 ? 'text-danger' : ($unitTotalResult > 0 ? 'text-success' : '') ?>"><?= format_brl($unitTotalResult) ?></div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="rounded-2 p-2" style="background: #f8fafc;">
-                <div class="text-muted" style="font-size: .72rem;">Unidades positivas</div>
-                <div class="fw-semibold" style="color: #1e293b;"><?= (int)($unitTotals['positive_units'] ?? 0) ?>/<?= (int)($unitTotals['units'] ?? 0) ?></div>
-              </div>
-            </div>
-            <div class="col-6">
-              <div class="rounded-2 p-2" style="background: #f8fafc;">
-                <div class="text-muted" style="font-size: .72rem;">Melhor margem</div>
-                <div class="fw-semibold" style="color: #1e293b;">
-                  <?php if ($bestMarginUnit): ?>
-                    <?= e($bestMarginUnit['unit_code']) ?> · <?= number_format((float)$bestMarginUnit['margin'], 1, ',', '.') ?>%
-                  <?php else: ?>
-                    -
-                  <?php endif; ?>
-                </div>
-              </div>
-            </div>
+          <div class="d-flex align-items-center justify-content-between gap-3 mb-3 flex-wrap" style="font-size: .82rem;">
+            <div class="text-muted">Receita <span class="fw-semibold" style="color: #1e293b;"><?= format_brl($unitTotalRevenue) ?></span></div>
+            <div class="text-muted">Resultado <span class="fw-semibold <?= $unitTotalResult < 0 ? 'text-danger' : ($unitTotalResult > 0 ? 'text-success' : '') ?>"><?= format_brl($unitTotalResult) ?></span></div>
+            <div class="text-muted">Positivas <span class="fw-semibold" style="color: #1e293b;"><?= (int)($unitTotals['positive_units'] ?? 0) ?>/<?= (int)($unitTotals['units'] ?? 0) ?></span></div>
           </div>
           <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle" style="font-size: .875rem;">
-              <thead style="border-bottom: 2px solid #e2e8f0;">
-                <tr>
-                  <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; min-width: 150px;">Unidade</th>
-                  <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em; min-width: 170px;">Participação</th>
-                  <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Resultado</th>
-                  <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Margem</th>
-                </tr>
-              </thead>
+            <table class="table table-hover mb-0 align-middle" style="font-size: .82rem;">
               <tbody>
                 <?php foreach ($unitComparison['rows'] as $unit): ?>
                 <?php
@@ -231,22 +195,20 @@
                   $share = (float)($unit['revenue_share'] ?? 0);
                 ?>
                 <tr style="border-bottom: 1px solid #f1f5f9;">
-                  <td class="py-3">
-                    <div class="fw-semibold" style="color: #1e293b;"><?= e($unit['unit_code']) ?></div>
-                    <small class="text-muted d-block"><?= e($unit['unit_name']) ?></small>
+                  <td class="py-2 ps-0">
+                    <div class="fw-semibold" style="color: #1e293b;"><?= e($unit['unit_code']) ?> <span class="text-muted fw-normal"><?= e($unit['unit_name']) ?></span></div>
                     <small class="text-muted"><?= e($unit['period_label'] ?? '') ?></small>
                   </td>
-                  <td class="py-3">
-                    <div class="d-flex justify-content-between gap-2 mb-1">
-                      <span class="fw-semibold"><?= number_format($share, 1, ',', '.') ?>%</span>
-                      <span class="text-muted"><?= format_brl($revenue) ?></span>
+                  <td class="py-2" style="min-width: 150px;">
+                    <div class="d-flex justify-content-between gap-2 mb-1" style="font-size: .78rem;">
+                      <span class="fw-semibold"><?= number_format($share, 1, ',', '.') ?>%</span><span class="text-muted"><?= format_brl($revenue) ?></span>
                     </div>
                     <div style="height: 7px; background: #ecfdf5; border-radius: 999px; overflow: hidden;">
                       <div style="height: 100%; width: <?= number_format(min(100, max(0, $share)), 2, '.', '') ?>%; background: #34d399;"></div>
                     </div>
                   </td>
-                  <td class="py-3 text-end fw-semibold <?= $result < 0 ? 'text-danger' : ($result > 0 ? 'text-success' : '') ?>"><?= format_brl($result) ?></td>
-                  <td class="py-3 text-end"><?= number_format((float)$unit['margin'], 1, ',', '.') ?>%</td>
+                  <td class="py-2 text-end fw-semibold <?= $result < 0 ? 'text-danger' : ($result > 0 ? 'text-success' : '') ?>"><?= format_brl($result) ?></td>
+                  <td class="py-2 pe-0 text-end text-muted"><?= number_format((float)$unit['margin'], 1, ',', '.') ?>%</td>
                 </tr>
                 <?php endforeach; ?>
               </tbody>
