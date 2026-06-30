@@ -222,67 +222,218 @@
 
   <?php if (!empty($annualComparison)): ?>
   <?php
-    $lastAnnual = $annualComparison[array_key_last($annualComparison)];
-    $annualChange = $lastAnnual['result_change'];
+    $yearsCount = count($annualComparison);
+    $currentYear = $annualComparison[array_key_last($annualComparison)];
+    $previousYear = $yearsCount > 1 ? $annualComparison[array_key_last($annualComparison) - 1] : null;
+    $bestMargin = array_reduce($annualComparison, function ($carry, $item) {
+        if ($carry === null) {
+            return $item;
+        }
+        return (float)$item['margin'] > (float)$carry['margin'] ? $item : $carry;
+    }, null);
+    $bestRevenue = array_reduce($annualComparison, function ($carry, $item) {
+        if ($carry === null) {
+            return $item;
+        }
+        return (float)$item['revenue'] > (float)$carry['revenue'] ? $item : $carry;
+    }, null);
+    $resultDelta = $previousYear ? (float)$currentYear['result'] - (float)$previousYear['result'] : null;
+    $resultChange = ($previousYear && (float)$previousYear['result'] !== 0.0)
+        ? ($resultDelta / (float)$previousYear['result']) * 100
+        : null;
+    $marginChange = $previousYear
+        ? (float)$currentYear['margin'] - (float)$previousYear['margin']
+        : null;
   ?>
-  <div class="row g-3 mb-5">
-    <div class="col-12">
-      <div class="card shadow-sm border-0">
-        <div class="card-body p-4">
-          <div class="d-flex align-items-center justify-content-between gap-3 mb-4 flex-wrap">
-            <div class="d-flex align-items-center gap-2">
-              <div class="d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; background: #eef2ff; border-radius: 8px;">
-                <i class="bi bi-bar-chart-line text-primary"></i>
-              </div>
-              <div>
-                <h5 class="fw-semibold mb-0" style="color: #1e293b;">Evolução Anual</h5>
-                <small class="text-muted">Receita, resultado e margem por ano</small>
-              </div>
+  <style>
+    .annual-evolution__eyebrow {
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: .65rem;
+      font-weight: 700;
+      color: #64748b;
+      display: inline-block;
+      margin-bottom: .35rem;
+    }
+    .annual-evolution__title {
+      color: #0f172a;
+      font-weight: 700;
+    }
+    .annual-evolution__subtitle {
+      color: #475569;
+      font-size: .88rem;
+      line-height: 1.5;
+    }
+    .annual-spotlight {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(14, 165, 233, 0.08));
+      border-radius: 20px;
+      padding: 1.6rem 1.8rem;
+      box-shadow: 0 20px 35px -25px rgba(15, 23, 42, 0.45);
+    }
+    .annual-spotlight__label {
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      font-size: .68rem;
+      font-weight: 600;
+      color: #1d4ed8;
+    }
+    .annual-spotlight__badge {
+      font-size: .78rem;
+      font-weight: 600;
+      padding: .2rem .6rem;
+      border-radius: 999px;
+    }
+    .annual-spotlight__badge.is-up {
+      background: rgba(34, 197, 94, 0.14);
+      color: #047857;
+    }
+    .annual-spotlight__badge.is-down {
+      background: rgba(248, 113, 113, 0.16);
+      color: #b91c1c;
+    }
+    .annual-spotlight__value {
+      font-size: 1.7rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .annual-spotlight__meta {
+      font-size: .82rem;
+      color: #475569;
+      font-weight: 600;
+    }
+    .annual-spotlight__delta {
+      margin-left: .4rem;
+      font-weight: 700;
+    }
+    .annual-metrics {
+      margin: 0;
+      padding: 0;
+    }
+    .annual-metrics li {
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: .65rem 0;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+      font-size: .82rem;
+    }
+    .annual-metrics li:last-child {
+      border-bottom: none;
+    }
+    .annual-metrics .label {
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #94a3b8;
+      font-weight: 600;
+    }
+    .annual-metrics .value {
+      color: #0f172a;
+      font-weight: 600;
+    }
+    .annual-chart {
+      position: relative;
+      min-height: 300px;
+    }
+    .annual-row:hover {
+      background: rgba(226, 232, 240, 0.45);
+    }
+    @media (max-width: 991.98px) {
+      .annual-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .9rem;
+      }
+      .annual-metrics li {
+        flex: 1 1 calc(50% - .9rem);
+        padding: .9rem 1rem;
+        border-bottom: none;
+        background: #f8fafc;
+        border-radius: 1rem;
+      }
+    }
+  </style>
+  <div class="card shadow-sm border-0 annual-evolution">
+    <div class="card-body p-4 p-xl-5">
+      <div class="row g-4 g-xl-5 align-items-start">
+        <div class="col-lg-4">
+          <div class="annual-evolution__heading mb-4">
+            <span class="annual-evolution__eyebrow">Evolução Anual</span>
+            <h4 class="annual-evolution__title mb-2"><?= e($currentYear['year']) ?> em foco</h4>
+            <p class="annual-evolution__subtitle mb-0">Receita, resultado e margem consolidados por ano com destaques para os extremos do histórico recente.</p>
+          </div>
+          <div class="annual-spotlight mb-4">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <span class="annual-spotlight__label">Resultado <?= e($currentYear['year']) ?></span>
+              <?php if ($resultChange !== null): ?>
+              <span class="annual-spotlight__badge <?= $resultChange >= 0 ? 'is-up' : 'is-down' ?>">
+                <?= $resultChange >= 0 ? '+' : '' ?><?= number_format((float)$resultChange, 1, ',', '.') ?>%
+              </span>
+              <?php endif; ?>
             </div>
-            <div class="text-end">
-              <div class="text-muted" style="font-size: .72rem;">Resultado <?= (int)$lastAnnual['year'] ?></div>
-              <div class="fw-bold <?= (float)$lastAnnual['result'] < 0 ? 'text-danger' : ((float)$lastAnnual['result'] > 0 ? 'text-success' : '') ?>">
-                <?= format_brl((float)$lastAnnual['result']) ?>
-                <?php if ($annualChange !== null): ?>
-                  <small class="<?= $annualChange < 0 ? 'text-danger' : 'text-success' ?> ms-1"><?= $annualChange >= 0 ? '+' : '' ?><?= number_format((float)$annualChange, 1, ',', '.') ?>%</small>
-                <?php endif; ?>
-              </div>
+            <div class="annual-spotlight__value"><?= format_brl((float)$currentYear['result']) ?></div>
+            <div class="annual-spotlight__meta">
+              Margem <?= number_format((float)$currentYear['margin'], 1, ',', '.') ?>%
+              <?php if ($marginChange !== null): ?>
+              <span class="annual-spotlight__delta <?= $marginChange >= 0 ? 'text-success' : 'text-danger' ?>">
+                <?= $marginChange >= 0 ? '↑' : '↓' ?><?= number_format(abs((float)$marginChange), 1, ',', '.') ?> p.p.
+              </span>
+              <?php endif; ?>
             </div>
           </div>
-          <div class="row g-4 align-items-stretch">
-            <div class="col-lg-8">
-              <div style="height: 310px;">
-                <canvas id="annualChart"></canvas>
-              </div>
-            </div>
-            <div class="col-lg-4">
-              <div class="table-responsive h-100">
-                <table class="table table-hover mb-0 align-middle" style="font-size: .875rem;">
-                  <thead style="border-bottom: 2px solid #e2e8f0;">
-                    <tr>
-                      <th class="border-0 text-muted fw-semibold" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Ano</th>
-                      <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Resultado</th>
-                      <th class="border-0 text-muted fw-semibold text-end" style="font-size: .75rem; text-transform: uppercase; letter-spacing: .05em;">Margem</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <?php foreach (array_reverse($annualComparison) as $yearRow): ?>
-                    <?php $yearResult = (float)$yearRow['result']; ?>
-                    <tr style="border-bottom: 1px solid #f1f5f9;">
-                      <td class="py-3">
-                        <div class="fw-semibold" style="color: #1e293b;"><?= (int)$yearRow['year'] ?></div>
-                        <small class="text-muted"><?= (int)$yearRow['months_count'] ?> mês(es)</small>
-                      </td>
-                      <td class="py-3 text-end fw-semibold <?= $yearResult < 0 ? 'text-danger' : ($yearResult > 0 ? 'text-success' : '') ?>"><?= format_brl($yearResult) ?></td>
-                      <td class="py-3 text-end"><?= number_format((float)$yearRow['margin'], 1, ',', '.') ?>%</td>
-                    </tr>
-                    <?php endforeach; ?>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <ul class="annual-metrics">
+            <?php if ($bestRevenue): ?>
+            <li>
+              <span class="label">Maior receita</span>
+              <span class="value"><?= e($bestRevenue['year']) ?> · <?= format_brl((float)$bestRevenue['revenue']) ?></span>
+            </li>
+            <?php endif; ?>
+            <?php if ($bestMargin): ?>
+            <li>
+              <span class="label">Melhor margem</span>
+              <span class="value"><?= e($bestMargin['year']) ?> · <?= number_format((float)$bestMargin['margin'], 1, ',', '.') ?>%</span>
+            </li>
+            <?php endif; ?>
+            <?php if ($previousYear): ?>
+            <li>
+              <span class="label">Variação anual</span>
+              <span class="value"><?= format_brl((float)($resultDelta ?? 0)) ?> vs <?= e($previousYear['year']) ?></span>
+            </li>
+            <?php endif; ?>
+          </ul>
+        </div>
+        <div class="col-lg-8">
+          <div class="annual-chart">
+            <canvas id="annualChart" height="300"></canvas>
           </div>
         </div>
+      </div>
+
+      <div class="table-responsive mt-4">
+        <table class="table table-hover mb-0 align-middle" style="font-size: .87rem;">
+          <thead>
+            <tr>
+              <th class="border-0 text-muted fw-semibold">Ano</th>
+              <th class="border-0 text-muted fw-semibold text-end">Receita</th>
+              <th class="border-0 text-muted fw-semibold text-end">Resultado</th>
+              <th class="border-0 text-muted fw-semibold text-end">Margem</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach (array_reverse($annualComparison) as $yearRow): ?>
+            <?php $yearResult = (float)$yearRow['result']; ?>
+            <tr class="annual-row">
+              <td class="py-3">
+                <div class="fw-semibold" style="color: #0f172a;"><?= (int)$yearRow['year'] ?></div>
+                <small class="text-muted"><?= (int)$yearRow['months_count'] ?> mês(es)</small>
+              </td>
+              <td class="py-3 text-end"><?= format_brl((float)$yearRow['revenue']) ?></td>
+              <td class="py-3 text-end fw-semibold <?= $yearResult < 0 ? 'text-danger' : ($yearResult > 0 ? 'text-success' : '') ?>"><?= format_brl($yearResult) ?></td>
+              <td class="py-3 text-end"><?= number_format((float)$yearRow['margin'], 1, ',', '.') ?>%</td>
+            </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -465,43 +616,62 @@
 <?php endif; ?>
 
 <?php if (!empty($annualComparison)): ?>
-  const annualCtx = document.getElementById('annualChart')?.getContext('2d');
-  if (annualCtx) {
-    // Criar gradientes para as barras
-    const revenueGradient = annualCtx.createLinearGradient(0, 0, 0, 300);
-    revenueGradient.addColorStop(0, 'rgba(16, 185, 129, 0.9)');
-    revenueGradient.addColorStop(1, 'rgba(16, 185, 129, 0.5)');
-    
-    const resultGradient = annualCtx.createLinearGradient(0, 0, 0, 300);
-    resultGradient.addColorStop(0, 'rgba(59, 130, 246, 0.9)');
-    resultGradient.addColorStop(1, 'rgba(59, 130, 246, 0.5)');
-    
+  const annualElement = document.getElementById('annualChart');
+  if (annualElement) {
+    const annualCtx = annualElement.getContext('2d');
+    const labels = <?= json_encode(array_map(fn($y) => (string)$y['year'], $annualComparison)) ?>;
+    const revenueSeries = <?= json_encode(array_map(fn($y) => (float)$y['revenue'], $annualComparison)) ?>;
+    const resultSeries = <?= json_encode(array_map(fn($y) => (float)$y['result'], $annualComparison)) ?>;
+    const marginSeries = <?= json_encode(array_map(fn($y) => round((float)$y['margin'], 2), $annualComparison)) ?>;
+
+    const revenueGradient = annualCtx.createLinearGradient(0, 0, 0, 320);
+    revenueGradient.addColorStop(0, 'rgba(14, 165, 233, 0.35)');
+    revenueGradient.addColorStop(1, 'rgba(14, 165, 233, 0.08)');
+
+    const resultGradient = annualCtx.createLinearGradient(0, 0, 0, 320);
+    resultGradient.addColorStop(0, 'rgba(99, 102, 241, 0.32)');
+    resultGradient.addColorStop(1, 'rgba(99, 102, 241, 0.08)');
+
     new Chart(annualCtx, {
       type: 'bar',
       data: {
-        labels: <?= json_encode(array_map(fn($y) => (string)$y['year'], $annualComparison)) ?>,
+        labels,
         datasets: [
           {
+            type: 'bar',
             label: 'Receita',
-            data: <?= json_encode(array_map(fn($y) => (float)$y['revenue'], $annualComparison)) ?>,
+            data: revenueSeries,
             backgroundColor: revenueGradient,
-            borderColor: 'rgba(16, 185, 129, 0.4)',
-            borderWidth: 2,
-            borderRadius: 12,
+            borderRadius: 16,
+            maxBarThickness: 42,
             borderSkipped: false,
-            barThickness: 55,
-            maxBarThickness: 75
+            order: 1
           },
           {
+            type: 'bar',
             label: 'Resultado',
-            data: <?= json_encode(array_map(fn($y) => (float)$y['result'], $annualComparison)) ?>,
+            data: resultSeries,
             backgroundColor: resultGradient,
-            borderColor: 'rgba(59, 130, 246, 0.4)',
-            borderWidth: 2,
-            borderRadius: 12,
+            borderRadius: 16,
+            maxBarThickness: 36,
             borderSkipped: false,
-            barThickness: 55,
-            maxBarThickness: 75
+            order: 2
+          },
+          {
+            type: 'line',
+            label: 'Margem (%)',
+            data: marginSeries,
+            yAxisID: 'y1',
+            tension: 0.4,
+            borderColor: '#22c55e',
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#22c55e',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            fill: false,
+            borderWidth: 2.5,
+            order: 0
           }
         ]
       },
@@ -516,8 +686,8 @@
             labels: {
               usePointStyle: true,
               pointStyle: 'circle',
-              padding: 20,
-              font: { size: 13, weight: '600' },
+              padding: 18,
+              font: { size: 12, weight: '600' },
               color: '#475569'
             }
           },
@@ -527,16 +697,20 @@
             bodyColor: '#e2e8f0',
             borderColor: 'rgba(148, 163, 184, 0.2)',
             borderWidth: 1,
-            padding: 16,
-            cornerRadius: 12,
+            padding: 14,
+            cornerRadius: 10,
             displayColors: true,
-            boxPadding: 8,
+            boxPadding: 6,
             titleFont: { size: 13, weight: '600' },
             bodyFont: { size: 12 },
             callbacks: {
               label: function(context) {
-                const value = Number(context.raw || 0);
-                return `${context.dataset.label}: ${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+                const label = context.dataset.label || '';
+                const rawValue = Number(context.raw || 0);
+                if (label.includes('Margem')) {
+                  return `${label}: ${rawValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+                }
+                return `${label}: ${rawValue.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
               }
             }
           }
@@ -544,15 +718,15 @@
         scales: {
           x: {
             grid: { display: false },
-            ticks: { 
-              font: { size: 14, weight: '700' }, 
+            ticks: {
+              font: { size: 13, weight: '600' },
               color: '#334155',
-              padding: 12
+              padding: 10
             }
           },
           y: {
             beginAtZero: true,
-            grid: { 
+            grid: {
               color: 'rgba(226, 232, 240, 0.6)',
               drawBorder: false,
               lineWidth: 1
@@ -561,10 +735,19 @@
             ticks: {
               font: { size: 11 },
               color: '#94a3b8',
-              padding: 12,
-              callback: function(value) {
-                return Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
-              }
+              padding: 10,
+              callback: value => Number(value).toLocaleString('pt-BR', { maximumFractionDigits: 0 })
+            }
+          },
+          y1: {
+            position: 'right',
+            beginAtZero: true,
+            grid: { drawBorder: false, drawOnChartArea: false },
+            ticks: {
+              font: { size: 11 },
+              color: '#16a34a',
+              padding: 10,
+              callback: value => `${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}%`
             }
           }
         }
