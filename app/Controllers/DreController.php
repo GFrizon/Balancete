@@ -42,7 +42,7 @@ class DreController
         $imports = $this->getImportMeta($importIds);
         $treeRows = (new BalanceteTree())->rowsForImports($importIds);
         $months = $this->selectedMonths($fYear, $fMonthStart, $fMonthEnd);
-        $matrixRows = $this->buildMatrix($treeRows, $months);
+        $matrixRows = $this->buildMatrix($treeRows, $months, $fUnit === 0);
 
         view('dre/index', compact(
             'companies', 'units', 'yearsAvailable',
@@ -152,12 +152,16 @@ class DreController
         return $months;
     }
 
-    private function buildMatrix(array $treeRows, array $months): array
+    private function buildMatrix(array $treeRows, array $months, bool $consolidateUnits = false): array
     {
         $monthKeys = array_column($months, 'key');
         $matrix = [];
 
         foreach ($treeRows as $row) {
+            if ($consolidateUnits && !empty($row['is_analytical'])) {
+                continue;
+            }
+
             $key = $this->rowKey($row);
             $monthKey = sprintf('%04d-%02d', (int)$row['year'], (int)$row['month']);
 
