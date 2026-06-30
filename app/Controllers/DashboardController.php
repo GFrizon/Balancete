@@ -41,13 +41,13 @@ class DashboardController
 
         // Análises financeiras
         $monthlySummary = $this->monthlySummary($pdo);
-        $unitComparison = $this->unitComparison($pdo);
+        $accountComparison = $this->accountComparisonByUnit($pdo);
         $annualComparison = $this->annualComparison($pdo);
         $lastMonthSummary = !empty($monthlySummary) ? $monthlySummary[array_key_last($monthlySummary)] : null;
 
         view('dashboard/index', compact(
             'recentImports', 'totalImports', 'totalConfirmed', 'totalUnits', 'lastImport',
-            'monthlySummary', 'unitComparison', 'annualComparison', 'lastMonthSummary'
+            'monthlySummary', 'accountComparison', 'annualComparison', 'lastMonthSummary'
         ));
     }
 
@@ -218,40 +218,28 @@ class DashboardController
         return $rows;
     }
 
-    private function unitComparison(PDO $pdo): array
+    private function accountComparisonByUnit(PDO $pdo): array
     {
-        $latestImports = $pdo->query(
+        $currentYear = (int)date('Y');
+
+        $yearImports = $pdo->query(
             "SELECT i.id, i.year, i.month,
                     bu.id AS unit_id,
                     bu.code AS unit_code,
                     bu.name AS unit_name
              FROM imports i
              JOIN business_units bu ON bu.id = i.business_unit_id
-             JOIN (
-                SELECT business_unit_id, MAX((year * 100) + month) AS period_key
-                FROM imports
-                WHERE status = 'confirmed'
-                GROUP BY business_unit_id
-             ) latest ON latest.business_unit_id = i.business_unit_id
-                     AND latest.period_key = ((i.year * 100) + i.month)
              WHERE i.status = 'confirmed'
+               AND i.year = {$currentYear}
                AND bu.active = 1
-               AND i.id = (
-                    SELECT MAX(i2.id)
-                    FROM imports i2
-                    WHERE i2.status = 'confirmed'
-                      AND i2.business_unit_id = i.business_unit_id
-                      AND i2.year = i.year
-                      AND i2.month = i.month
-               )
-             ORDER BY bu.code"
+             ORDER BY bu.code, i.month"
         )->fetchAll();
 
-        if (empty($latestImports)) {
-            return ['period' => null, 'rows' => []];
+        if (empty($yearImports)) {
+            return ['period' => null, 'rows' => [], 'months_count' => 0];
         }
 
-        $importIds = array_map(static fn (array $import): int => (int)$import['id'], $latestImports);
+        $importIds = array_map(static fn (array $import): int => (int)$import['id'], $yearImports);
         $placeholders = implode(',', array_fill(0, count($importIds), '?'));
         $stmt = $pdo->prepare(
             "SELECT bu.id AS unit_id,
@@ -272,100 +260,121 @@ class DashboardController
         $stmt->execute($importIds);
 
         $targets = [
-            'revenue' => $this->normalizeAccountDescription('RECEITA OPERACIONAL LIQUIDA'),
-            'cost' => $this->normalizeAccountDescription('CUSTO DAS VENDAS'),
-            'result' => $this->normalizeAccountDescription('RESULTADO LIQUIDO DO EXERCICIO'),
+            'resultado' => $this->normalizeAccountDescription('RESULTADO LIQUIDO DO EXERCICIO'),
+            'receita' => $this->normalizeAccountDescription('RECEITA OPERACIONAL LIQUIDA'),
+            'devolucoes' => $this->normalizeAccountDescription('DEVOLUCOES DE VENDAS'),
+            'custo' => $this->normalizeAccountDescription('CUSTO PRODUTOS DOS VENDIDOS'),
+            'desp_operacionais' => $this->normalizeAccountDescription('DESPESAS OPERACIONAIS'),
+            'desp_administrativas' => $this->normalizeAccountDescription('DESPESAS ADMINISTRATIVAS'),
         ];
-        $rowsByUnit = [];
 
-        foreach ($latestImports as $import) {
+        $rowsByUnit = [];
+        $monthsByUnit = [];
+
+        foreach ($yearImports as $import) {
             $unitId = (int)$import['unit_id'];
-            $unitCode = (string)$import['unit_code'];
-            $rowsByUnit[$unitId] = [
-                'unit_id' => $unitId,
-                'unit_code' => $unitCode,
-                'unit_name' => (string)$import['unit_name'],
-                'year' => (int)$import['year'],
-                'month' => (int)$import['month'],
-                'period_label' => month_short((int)$import['month']) . '/' . (int)$import['year'],
-                'revenue' => 0.0,
-                'cost' => 0.0,
-                'result' => 0.0,
-                'margin' => 0.0,
-            ];
+            if (!isset($rowsByUnit[$unitId])) {
+                $rowsByUnit[$unitId] = [
+                    'unit_id' => $unitId,
+                    'unit_code' => (string)$import['unit_code'],
+                    'unit_name' => (string)$import['unit_name'],
+                    'resultado_acum' => 0.0,
+                    'receita_acum' => 0.0,
+                    'devolucoes_acum' => 0.0,
+                    'custo_acum' => 0.0,
+                    'desp_operacionais_acum' => 0.0,
+                    'desp_administrativas_acum' => 0.0,
+                    'resultado_media' => 0.0,
+                    'receita_media' => 0.0,
+                    'devolucoes_media' => 0.0,
+                    'custo_media' => 0.0,
+                    'desp_operacionais_media' => 0.0,
+                    'desp_administrativas_media' => 0.0,
+                    'margin' => 0.0,
+                ];
+                $monthsByUnit[$unitId] = [];
+            }
+            $monthsByUnit[$unitId][(int)$import['month']] = true;
         }
 
         foreach ($stmt->fetchAll() as $row) {
             $unitId = (int)$row['unit_id'];
-            $unitCode = (string)$row['unit_code'];
             if (!isset($rowsByUnit[$unitId])) {
-                $rowsByUnit[$unitId] = [
-                    'unit_id' => $unitId,
-                    'unit_code' => $unitCode,
-                    'unit_name' => (string)$row['unit_name'],
-                    'year' => (int)$row['year'],
-                    'month' => (int)$row['month'],
-                    'period_label' => month_short((int)$row['month']) . '/' . (int)$row['year'],
-                    'revenue' => 0.0,
-                    'cost' => 0.0,
-                    'result' => 0.0,
-                    'margin' => 0.0,
-                ];
+                continue;
             }
 
             $description = $this->normalizeAccountDescription((string)$row['account_description']);
             $movement = $this->signedMovement((float)$row['movement_value'], (string)($row['movement_type'] ?? ''));
 
-            if ($description === $targets['revenue']) {
-                $rowsByUnit[$unitId]['revenue'] += abs($movement);
-            } elseif ($description === $targets['cost']) {
-                $rowsByUnit[$unitId]['cost'] += abs($movement);
-            } elseif ($description === $targets['result']) {
-                $rowsByUnit[$unitId]['result'] += $movement;
+            if ($description === $targets['resultado']) {
+                $rowsByUnit[$unitId]['resultado_acum'] += $movement;
+            } elseif ($description === $targets['receita']) {
+                $rowsByUnit[$unitId]['receita_acum'] += abs($movement);
+            } elseif ($description === $targets['devolucoes']) {
+                $rowsByUnit[$unitId]['devolucoes_acum'] += abs($movement);
+            } elseif ($description === $targets['custo']) {
+                $rowsByUnit[$unitId]['custo_acum'] += abs($movement);
+            } elseif ($description === $targets['desp_operacionais']) {
+                $rowsByUnit[$unitId]['desp_operacionais_acum'] += abs($movement);
+            } elseif ($description === $targets['desp_administrativas']) {
+                $rowsByUnit[$unitId]['desp_administrativas_acum'] += abs($movement);
             }
         }
 
-        foreach ($rowsByUnit as &$unit) {
-            $unit['margin'] = $unit['revenue'] > 0 ? ($unit['result'] / $unit['revenue']) * 100 : 0.0;
-            $unit['revenue_share'] = 0.0;
+        $maxMonth = 0;
+        foreach ($rowsByUnit as $unitId => &$unit) {
+            $monthsCount = max(1, count($monthsByUnit[$unitId]));
+            $maxMonth = max($maxMonth, max(array_keys($monthsByUnit[$unitId])));
+
+            $unit['resultado_media'] = $unit['resultado_acum'] / $monthsCount;
+            $unit['receita_media'] = $unit['receita_acum'] / $monthsCount;
+            $unit['devolucoes_media'] = $unit['devolucoes_acum'] / $monthsCount;
+            $unit['custo_media'] = $unit['custo_acum'] / $monthsCount;
+            $unit['desp_operacionais_media'] = $unit['desp_operacionais_acum'] / $monthsCount;
+            $unit['desp_administrativas_media'] = $unit['desp_administrativas_acum'] / $monthsCount;
+            $unit['margin'] = $unit['receita_acum'] > 0 ? ($unit['resultado_acum'] / $unit['receita_acum']) * 100 : 0.0;
+            $unit['months_count'] = $monthsCount;
         }
         unset($unit);
 
         $rows = array_values($rowsByUnit);
-        $totalRevenue = array_sum(array_map(static fn (array $unit): float => (float)$unit['revenue'], $rows));
-        $totalResult = array_sum(array_map(static fn (array $unit): float => (float)$unit['result'], $rows));
-
-        foreach ($rows as &$row) {
-            $row['revenue_share'] = $totalRevenue > 0 ? ((float)$row['revenue'] / $totalRevenue) * 100 : 0.0;
-        }
-        unset($row);
 
         usort($rows, static function (array $a, array $b): int {
-            return [(float)$b['revenue'], (float)$b['result']] <=> [(float)$a['revenue'], (float)$a['result']];
+            return [(float)$b['receita_acum'], (float)$b['resultado_acum']] <=> [(float)$a['receita_acum'], (float)$a['resultado_acum']];
         });
 
         $bestMargin = null;
+        $worstResult = null;
         foreach ($rows as $row) {
-            if ((float)$row['revenue'] <= 0) {
-                continue;
+            if ((float)$row['receita_acum'] > 0) {
+                if ($bestMargin === null || (float)$row['margin'] > (float)$bestMargin['margin']) {
+                    $bestMargin = $row;
+                }
             }
-            if ($bestMargin === null || (float)$row['margin'] > (float)$bestMargin['margin']) {
-                $bestMargin = $row;
+            if ($worstResult === null || (float)$row['resultado_acum'] < (float)$worstResult['resultado_acum']) {
+                $worstResult = $row;
             }
         }
 
+        $totalReceita = array_sum(array_map(static fn (array $unit): float => (float)$unit['receita_acum'], $rows));
+        $totalResultado = array_sum(array_map(static fn (array $unit): float => (float)$unit['resultado_acum'], $rows));
+
         return [
             'period' => [
-                'label' => 'Último balancete por unidade',
+                'label' => "Jan a " . month_short($maxMonth) . "/{$currentYear}",
+                'year' => $currentYear,
+                'max_month' => $maxMonth,
             ],
             'totals' => [
                 'units' => count($rows),
-                'revenue' => $totalRevenue,
-                'result' => $totalResult,
-                'positive_units' => count(array_filter($rows, static fn (array $unit): bool => (float)$unit['result'] > 0)),
+                'receita' => $totalReceita,
+                'resultado' => $totalResultado,
+                'positive_units' => count(array_filter($rows, static fn (array $unit): bool => (float)$unit['resultado_acum'] > 0)),
                 'best_margin' => $bestMargin,
+                'worst_result' => $worstResult,
             ],
             'rows' => $rows,
+            'months_count' => $maxMonth,
         ];
     }
 }

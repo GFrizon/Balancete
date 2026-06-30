@@ -141,7 +141,7 @@ class AuthController
                FROM audit_logs
               WHERE action IN ('login_failed', 'login_blocked')
                 AND ip_address = ?
-                AND created_at >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)"
+                AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)"
         );
         $stmt->execute([$ip]);
         if ((int)$stmt->fetchColumn() >= 8) {
@@ -153,7 +153,7 @@ class AuthController
                FROM audit_logs
               WHERE action = 'login_failed'
                 AND payload LIKE ?
-                AND created_at >= DATE_SUB(NOW(), INTERVAL 15 MINUTE)"
+                AND created_at >= DATE_SUB(NOW(), INTERVAL 1 MINUTE)"
         );
         $stmt->execute(['%' . $email . '%']);
         return (int)$stmt->fetchColumn() >= 5;
