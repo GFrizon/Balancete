@@ -159,7 +159,7 @@ class ImportController
         );
         $stmt->execute([
             $companyId, $unitId, $year, $month, $origName,
-            $fileHash, 'pending', current_user_id(), $storedPath,
+            $fileHash, 'confirmed', current_user_id(), $storedPath,
         ]);
         $importId = (int)$pdo->lastInsertId();
 
@@ -170,7 +170,9 @@ class ImportController
             'file' => $origName, 'rows' => count($result['rows'])
         ]);
 
-        redirect('imports/' . $importId . '/preview');
+        audit('import_confirmed', 'import', $importId);
+        flash('success', 'Importação concluída com sucesso!');
+        redirect('dre');
     }
 
     // -------------------------------------------------------
