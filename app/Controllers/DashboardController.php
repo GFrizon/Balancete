@@ -8,8 +8,21 @@ class DashboardController
         auth_check();
         $pdo = db();
 
-        // Últimas 10 importações
-        $stmt = $pdo->query(
+        $yearsAvailable = $this->availableYears($pdo);
+        $latestPeriod = $this->latestPeriod($pdo);
+        $defaultYear = $latestPeriod['year'] ?? (int)date('Y');
+        $fYear = (int)($_GET['year'] ?? $defaultYear);
+        if (!in_array($fYear, $yearsAvailable, true)) {
+            $fYear = $defaultYear;
+        }
+
+        [$defaultMonthStart, $defaultMonthEnd] = $this->detectMonthRange($pdo, $fYear);
+        $fMonthStart = isset($_GET['month_start']) && $_GET['month_start'] !== '' ? (int)$_GET['month_start'] : $defaultMonthStart;
+        $fMonthEnd = isset($_GET['month_end']) && $_GET['month_end'] !== '' ? (int)$_GET['month_end'] : $defaultMonthEnd;
+        [$fMonthStart, $fMonthEnd] = $this->normalizeMonthRange($fMonthStart, $fMonthEnd);
+        $dashboardPeriodLabel = $this->periodLabel($fYear, $fMonthStart, $fMonthEnd);
+
+        $stmt = $pdo->prepare(
             'SELECT i.id, i.year, i.month, i.status, i.imported_at,
                     i.original_filename,
                     c.name AS company_name,
@@ -19,59 +32,62 @@ class DashboardController
              JOIN companies c ON c.id = i.company_id
              JOIN business_units bu ON bu.id = i.business_unit_id
              JOIN users u ON u.id = i.imported_by
+             WHERE i.year = ?
+               AND i.month >= ?
+               AND i.month <= ?
              ORDER BY i.imported_at DESC
              LIMIT 10'
         );
+        $stmt->execute([$fYear, $fMonthStart, $fMonthEnd]);
         $recentImports = $stmt->fetchAll();
 
-        // Totais rápidos
-        $totalImports   = (int)$pdo->query('SELECT COUNT(*) FROM imports')->fetchColumn();
-        $totalConfirmed = (int)$pdo->query("SELECT COUNT(*) FROM imports WHERE status='confirmed'")->fetchColumn();
+        $totalImports   = $this->countImports($pdo, $fYear, $fMonthStart, $fMonthEnd);
+        $totalConfirmed = $this->countImports($pdo, $fYear, $fMonthStart, $fMonthEnd, 'confirmed');
         $totalUnits     = (int)$pdo->query("SELECT COUNT(*) FROM business_units WHERE active=1")->fetchColumn();
 
-        // Último import confirmado
-        $lastImport = $pdo->query(
+        $stmt = $pdo->prepare(
             "SELECT i.year, i.month, bu.name AS unit_name
              FROM imports i
              JOIN business_units bu ON bu.id = i.business_unit_id
              WHERE i.status = 'confirmed'
+               AND i.year = ?
+               AND i.month >= ?
+               AND i.month <= ?
              ORDER BY i.year DESC, i.month DESC
              LIMIT 1"
-        )->fetch();
+        );
+        $stmt->execute([$fYear, $fMonthStart, $fMonthEnd]);
+        $lastImport = $stmt->fetch();
 
-        // Análises financeiras
-        $monthlySummary = $this->monthlySummary($pdo);
-        $accountComparison = $this->accountComparisonByUnit($pdo);
+        $monthlySummary = $this->monthlySummary($pdo, $fYear, $fMonthStart, $fMonthEnd);
+        $accountComparison = $this->accountComparisonByUnit($pdo, $fYear, $fMonthStart, $fMonthEnd);
         $annualComparison = $this->annualComparison($pdo);
         $lastMonthSummary = !empty($monthlySummary) ? $monthlySummary[array_key_last($monthlySummary)] : null;
+        $financialSummary = $this->financialSummary($monthlySummary);
 
         view('dashboard/index', compact(
             'recentImports', 'totalImports', 'totalConfirmed', 'totalUnits', 'lastImport',
-            'monthlySummary', 'accountComparison', 'annualComparison', 'lastMonthSummary'
+            'monthlySummary', 'accountComparison', 'annualComparison', 'lastMonthSummary',
+            'financialSummary', 'yearsAvailable', 'fYear', 'fMonthStart', 'fMonthEnd',
+            'dashboardPeriodLabel'
         ));
     }
-
-    private function monthlySummary(PDO $pdo): array
+    private function monthlySummary(PDO $pdo, int $year, int $monthStart, int $monthEnd): array
     {
-        $stmt = $pdo->query(
+        $stmt = $pdo->prepare(
             "SELECT i.year, i.month,
                     tbr.account_description,
                     tbr.movement_value,
                     tbr.movement_type
              FROM trial_balance_rows tbr
              JOIN imports i ON i.id = tbr.import_id
-             JOIN (
-                SELECT year, month
-                FROM imports
-                WHERE status = 'confirmed'
-                GROUP BY year, month
-                ORDER BY year DESC, month DESC
-                LIMIT 12
-             ) recent_periods ON recent_periods.year = i.year
-                              AND recent_periods.month = i.month
              WHERE i.status = 'confirmed'
-             ORDER BY i.year DESC, i.month DESC, tbr.line_number"
+               AND i.year = ?
+               AND i.month >= ?
+               AND i.month <= ?
+             ORDER BY i.year, i.month, tbr.line_number"
         );
+        $stmt->execute([$year, $monthStart, $monthEnd]);
         $rows = $stmt->fetchAll();
         $summary = [];
         $targetRevenue = $this->normalizeAccountDescription('RECEITA OPERACIONAL BRUTA MERC.INTERNO');
@@ -218,10 +234,8 @@ class DashboardController
         return $rows;
     }
 
-    private function accountComparisonByUnit(PDO $pdo): array
+    private function accountComparisonByUnit(PDO $pdo, int $year, int $monthStart, int $monthEnd): array
     {
-        $currentYear = (int)date('Y');
-
         // Usa o primeiro grupo ativo, se existir
         $firstGroup = $pdo->query(
             "SELECT ug.id, ug.name
@@ -238,10 +252,10 @@ class DashboardController
         if ($firstGroup) {
             $gid = (int)$firstGroup['id'];
             $groupJoin = "JOIN unit_group_items ugi ON ugi.business_unit_id = bu.id AND ugi.unit_group_id = {$gid}";
-            $groupLabel = ' — ' . $firstGroup['name'];
+            $groupLabel = ' - ' . $firstGroup['name'];
         }
 
-        $yearImports = $pdo->query(
+        $stmt = $pdo->prepare(
             "SELECT i.id, i.year, i.month,
                     bu.id AS unit_id,
                     bu.code AS unit_code,
@@ -250,10 +264,14 @@ class DashboardController
              JOIN business_units bu ON bu.id = i.business_unit_id
              {$groupJoin}
              WHERE i.status = 'confirmed'
-               AND i.year = {$currentYear}
+               AND i.year = ?
+               AND i.month >= ?
+               AND i.month <= ?
                AND bu.active = 1
              ORDER BY bu.code, i.month"
-        )->fetchAll();
+        );
+        $stmt->execute([$year, $monthStart, $monthEnd]);
+        $yearImports = $stmt->fetchAll();
 
         if (empty($yearImports)) {
             return ['period' => null, 'rows' => [], 'months_count' => 0];
@@ -381,8 +399,8 @@ class DashboardController
 
         return [
             'period' => [
-                'label' => "Jan a " . month_short($maxMonth) . "/{$currentYear}",
-                'year' => $currentYear,
+                'label' => $this->periodLabel($year, $monthStart, $monthEnd),
+                'year' => $year,
                 'max_month' => $maxMonth,
                 'group_name' => $groupLabel,
             ],
@@ -395,7 +413,97 @@ class DashboardController
                 'worst_result' => $worstResult,
             ],
             'rows' => $rows,
-            'months_count' => $maxMonth,
+            'months_count' => max(1, $monthEnd - $monthStart + 1),
+        ];
+    }
+
+    private function availableYears(PDO $pdo): array
+    {
+        $years = $pdo->query(
+            "SELECT DISTINCT year FROM imports WHERE status = 'confirmed' ORDER BY year DESC"
+        )->fetchAll(PDO::FETCH_COLUMN);
+
+        return array_map('intval', $years ?: [(int)date('Y')]);
+    }
+
+    private function latestPeriod(PDO $pdo): ?array
+    {
+        $row = $pdo->query(
+            "SELECT year, month
+               FROM imports
+              WHERE status = 'confirmed'
+              ORDER BY year DESC, month DESC
+              LIMIT 1"
+        )->fetch();
+
+        if (!$row) {
+            return null;
+        }
+
+        return ['year' => (int)$row['year'], 'month' => (int)$row['month']];
+    }
+
+    private function detectMonthRange(PDO $pdo, int $year): array
+    {
+        $stmt = $pdo->prepare(
+            "SELECT MIN(month) AS min_month, MAX(month) AS max_month
+               FROM imports
+              WHERE status = 'confirmed'
+                AND year = ?"
+        );
+        $stmt->execute([$year]);
+        $row = $stmt->fetch();
+
+        if ($row && $row['min_month'] !== null && $row['max_month'] !== null) {
+            return [(int)$row['min_month'], (int)$row['max_month']];
+        }
+
+        return [1, 12];
+    }
+
+    private function normalizeMonthRange(int $monthStart, int $monthEnd): array
+    {
+        $monthStart = max(1, min(12, $monthStart));
+        $monthEnd = max(1, min(12, $monthEnd));
+
+        if ($monthStart > $monthEnd) {
+            [$monthStart, $monthEnd] = [$monthEnd, $monthStart];
+        }
+
+        return [$monthStart, $monthEnd];
+    }
+
+    private function periodLabel(int $year, int $monthStart, int $monthEnd): string
+    {
+        if ($monthStart === $monthEnd) {
+            return month_short($monthStart) . "/{$year}";
+        }
+
+        return month_short($monthStart) . "/{$year} a " . month_short($monthEnd) . "/{$year}";
+    }
+
+    private function countImports(PDO $pdo, int $year, int $monthStart, int $monthEnd, string $status = ''): int
+    {
+        $where = 'WHERE year = ? AND month >= ? AND month <= ?';
+        $params = [$year, $monthStart, $monthEnd];
+
+        if ($status !== '') {
+            $where .= ' AND status = ?';
+            $params[] = $status;
+        }
+
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM imports {$where}");
+        $stmt->execute($params);
+
+        return (int)$stmt->fetchColumn();
+    }
+
+    private function financialSummary(array $monthlySummary): array
+    {
+        return [
+            'receita' => array_sum(array_map(static fn (array $month): float => (float)$month['receita'], $monthlySummary)),
+            'custo_despesa' => array_sum(array_map(static fn (array $month): float => abs((float)$month['custo_despesa']), $monthlySummary)),
+            'resultado' => array_sum(array_map(static fn (array $month): float => (float)$month['resultado'], $monthlySummary)),
         ];
     }
 }

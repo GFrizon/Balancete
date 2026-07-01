@@ -7,13 +7,54 @@
   <div class="d-flex align-items-center justify-content-between mb-4">
     <div>
       <h3 class="fw-bold mb-1" style="color: #1e293b;">Dashboard</h3>
-      <p class="text-muted mb-0" style="font-size: .875rem;">Visão geral do sistema</p>
+      <p class="text-muted mb-0" style="font-size: .875rem;">Vis&atilde;o geral do sistema &middot; <?= e($dashboardPeriodLabel ?? '') ?></p>
     </div>
     <a href="<?= url('imports/create') ?>" class="btn btn-primary btn-lg shadow-sm">
       <i class="bi bi-cloud-upload me-2"></i>Nova Importação
     </a>
   </div>
 
+
+  <form method="get" action="<?= url('dashboard') ?>" class="card shadow-sm border-0 mb-4">
+    <input type="hidden" name="route" value="dashboard">
+    <div class="card-body p-3">
+      <div class="row g-2 align-items-end">
+        <div class="col-sm-4 col-lg-2">
+          <label class="form-label small fw-semibold text-muted mb-1">Ano</label>
+          <select name="year" class="form-select form-select-sm">
+            <?php foreach ($yearsAvailable as $year): ?>
+            <option value="<?= (int)$year ?>" <?= (int)$fYear === (int)$year ? 'selected' : '' ?>><?= (int)$year ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="col-sm-4 col-lg-2">
+          <label class="form-label small fw-semibold text-muted mb-1">M&ecirc;s inicial</label>
+          <select name="month_start" class="form-select form-select-sm">
+            <?php for ($month = 1; $month <= 12; $month++): ?>
+            <option value="<?= $month ?>" <?= (int)$fMonthStart === $month ? 'selected' : '' ?>><?= month_short($month) ?></option>
+            <?php endfor; ?>
+          </select>
+        </div>
+        <div class="col-sm-4 col-lg-2">
+          <label class="form-label small fw-semibold text-muted mb-1">M&ecirc;s final</label>
+          <select name="month_end" class="form-select form-select-sm">
+            <?php for ($month = 1; $month <= 12; $month++): ?>
+            <option value="<?= $month ?>" <?= (int)$fMonthEnd === $month ? 'selected' : '' ?>><?= month_short($month) ?></option>
+            <?php endfor; ?>
+          </select>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+          <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-funnel me-1"></i>Aplicar</button>
+        </div>
+        <div class="col-sm-6 col-lg-2">
+          <a href="<?= url('dashboard') ?>" class="btn btn-outline-secondary btn-sm w-100"><i class="bi bi-x-lg me-1"></i>Limpar</a>
+        </div>
+        <div class="col-lg-2 text-lg-end">
+          <span class="badge rounded-pill bg-light text-secondary border"><?= e($dashboardPeriodLabel ?? '') ?></span>
+        </div>
+      </div>
+    </div>
+  </form>
   <!-- Cards de resumo -->
   <div class="row g-3 mb-5">
     <div class="col-sm-6 col-xl-3">
@@ -66,12 +107,12 @@
   </div>
 
   <!-- Resumo financeiro do último mês -->
-  <?php if ($lastMonthSummary): ?>
+  <?php if (!empty($monthlySummary)): ?>
   <?php
-    $receita = (float)$lastMonthSummary['receita'];
-    $custo = abs((float)$lastMonthSummary['custo_despesa']);
-    $resultado = (float)$lastMonthSummary['resultado'];
-    $periodLabel = month_short((int)$lastMonthSummary['month']) . '/' . $lastMonthSummary['year'];
+    $receita = (float)($financialSummary['receita'] ?? 0);
+    $custo = (float)($financialSummary['custo_despesa'] ?? 0);
+    $resultado = (float)($financialSummary['resultado'] ?? 0);
+    $periodLabel = $dashboardPeriodLabel ?? '';
   ?>
   <div class="row g-3 mb-5">
     <div class="col-12 mb-2">
@@ -98,7 +139,7 @@
           </div>
           <div class="fin-label-v2">Receitas</div>
           <div class="fin-value-v2 receita"><?= format_brl($receita) ?></div>
-          <div class="fin-sub-v2">Mês de <?= e($periodLabel) ?></div>
+          <div class="fin-sub-v2">Per&iacute;odo de <?= e($periodLabel) ?></div>
         </div>
       </div>
     </div>
@@ -115,7 +156,7 @@
           </div>
           <div class="fin-label-v2">Custos / Despesas</div>
           <div class="fin-value-v2 custo"><?= format_brl($custo) ?></div>
-          <div class="fin-sub-v2">Mês de <?= e($periodLabel) ?></div>
+          <div class="fin-sub-v2">Per&iacute;odo de <?= e($periodLabel) ?></div>
         </div>
       </div>
     </div>
@@ -151,7 +192,7 @@
             </div>
             <div>
               <h5 class="fw-semibold mb-0" style="color: #1e293b;">Evolução Mensal</h5>
-              <small class="text-muted">Últimos 12 meses</small>
+              <small class="text-muted"><?= e($dashboardPeriodLabel ?? '') ?></small>
             </div>
           </div>
           <div style="height: 280px;">
