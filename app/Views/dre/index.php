@@ -43,21 +43,12 @@ $chartPayload = static function (array $row, array $months, int $currentYear, in
     $labels = [];
     $currentValues = [];
     $previousValues = [];
-    $currentChartValues = [];
-    $previousChartValues = [];
-    $description = strtoupper((string)($row['account_description'] ?? ''));
-    $usesSignedTrend = (bool)preg_match('/\b(RESULTADO|LUCRO|RECEITA)\b/', $description);
 
     foreach ($months as $month) {
         $labels[] = month_short((int)$month['month']);
-        $currentValue = (float)($row['values'][$month['key']] ?? 0.0);
+        $currentValues[] = (float)($row['values'][$month['key']] ?? 0.0);
         $previousKey = sprintf('%04d-%02d', $previousYear, (int)$month['month']);
-        $previousValue = (float)($row['previous_year_values'][$previousKey] ?? 0.0);
-
-        $currentValues[] = $currentValue;
-        $previousValues[] = $previousValue;
-        $currentChartValues[] = $usesSignedTrend ? $currentValue : abs($currentValue);
-        $previousChartValues[] = $usesSignedTrend ? $previousValue : abs($previousValue);
+        $previousValues[] = (float)($row['previous_year_values'][$previousKey] ?? 0.0);
     }
 
     return e(json_encode([
@@ -68,8 +59,6 @@ $chartPayload = static function (array $row, array $months, int $currentYear, in
         'labels' => $labels,
         'current' => $currentValues,
         'previous' => $previousValues,
-        'currentChart' => $currentChartValues,
-        'previousChart' => $previousChartValues,
         'currentTotal' => (float)($row['acumulado'] ?? 0.0),
         'previousTotal' => (float)($row['previous_year_acumulado'] ?? 0.0),
         'currentAverage' => (float)($row['media'] ?? 0.0),
@@ -540,8 +529,8 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     ctx.clearRect(0, 0, cssWidth, cssHeight);
 
     const labels = payload.labels || [];
-    const current = (payload.currentChart || payload.current || []).map(Number);
-    const previous = (payload.previousChart || payload.previous || []).map(Number);
+    const current = (payload.current || []).map(Number);
+    const previous = (payload.previous || []).map(Number);
     const values = [...current, ...previous, 0];
     const max = Math.max(...values);
     const min = Math.min(...values);

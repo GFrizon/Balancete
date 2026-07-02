@@ -1062,6 +1062,23 @@ body {
   background: #fff4c2 !important;
 }
 
+.dre-report-table tbody .dre-money.is-positive {
+  color: #047857 !important;
+}
+
+.dre-report-table tbody .dre-money.is-negative {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
+.dre-report-table tbody tr.is-marked .dre-money.is-positive {
+  color: #047857 !important;
+}
+
+.dre-report-table tbody tr.is-marked .dre-money.is-negative {
+  color: #b91c1c !important;
+}
+
 .dre-tooltip-cell {
   cursor: help;
   outline: none;
