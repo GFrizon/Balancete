@@ -695,7 +695,10 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
         code: String(unit.code || '').trim(),
         name: String(unit.name || '').trim(),
         label: String(unit.label || `${unit.code || ''} ${unit.name || ''}`).trim(),
-        total: Number(unit.total || 0)
+        total: Number(unit.total || 0),
+        previous_total: Number(unit.previous_total || 0),
+        values: unit.values || {},
+        previous_values: unit.previous_values || {}
       }))
       .filter(unit => Math.abs(unit.total) >= 0.005);
 
@@ -789,7 +792,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     const previous = (activeBasePayload.previousMonthKeys || []).map(key => Number((unit.previous_values || {})[key] || 0));
     const unitPayload = {
       ...activeBasePayload,
-      description: `${activeBasePayload.description} · ${unit.code || unit.label}`,
+      description: `${activeBasePayload.description} - ${unit.code || unit.label}`,
       current,
       previous,
       currentTotal: Number(unit.total || 0),
@@ -798,7 +801,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
       previousAverage: previous.length ? previous.reduce((sum, value) => sum + value, 0) / previous.length : 0
     };
 
-    updateChartView(unitPayload, `${unit.label || 'Unidade'} · ${activeBasePayload.currentYear} x ${activeBasePayload.previousYear}`);
+    updateChartView(unitPayload, `${unit.label || 'Unidade'} - ${activeBasePayload.currentYear} x ${activeBasePayload.previousYear}`);
     renderUnitComparison(activeBasePayload);
     if (chartResetUnit) chartResetUnit.hidden = false;
   }
@@ -913,6 +916,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   });
 
   chartClose?.addEventListener('click', closeChart);
+  chartResetUnit?.addEventListener('click', resetChartUnit);
   chartBackdrop?.addEventListener('click', closeChart);
   document.addEventListener('keydown', event => {
     if (event.key === 'Escape') {
