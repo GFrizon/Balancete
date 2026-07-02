@@ -537,7 +537,7 @@ body {
 }
 
 .dre-money.is-negative {
-  color: #c2410c;
+  color: #b65f4a;
 }
 
 .dre-zero {
@@ -866,7 +866,7 @@ body {
 .dre-tree-row[data-level="0"]:hover td,
 .dre-tree-row[data-level="0"]:hover .dre-sticky { background: #d6ebfa !important; }
 .dre-tree-row[data-level="0"] .dre-money.is-positive { color: #15803d !important; }
-.dre-tree-row[data-level="0"] .dre-money.is-negative { color: #c2410c !important; }
+.dre-tree-row[data-level="0"] .dre-money.is-negative { color: #b65f4a !important; }
 .dre-tree-row[data-level="0"] .dre-zero              { color: #94a3b8 !important; }
 
 /* --- Nível 1: branco, CAPS bold, separador entre seções --- */
@@ -1067,8 +1067,8 @@ body {
 }
 
 .dre-report-table tbody .dre-money.is-negative {
-  color: #dc2626 !important;
-  font-weight: 600;
+  color: #b65f4a !important;
+  font-weight: 500;
 }
 
 .dre-report-table tbody tr.is-marked .dre-money.is-positive {
@@ -1076,16 +1076,16 @@ body {
 }
 
 .dre-report-table tbody tr.is-marked .dre-money.is-negative {
-  color: #b91c1c !important;
+  color: #a95743 !important;
 }
 
 .dre-report-table .dre-value-negative {
-  color: #dc2626 !important;
-  font-weight: 600;
+  color: #b65f4a !important;
+  font-weight: 500;
 }
 
 .dre-report-table tr.is-marked .dre-value-negative {
-  color: #b91c1c !important;
+  color: #a95743 !important;
 }
 
 .dre-report-table .dre-value-positive {
