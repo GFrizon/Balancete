@@ -424,6 +424,7 @@ class DreController
                 'acumulado' => (float)($row['acumulado'] ?? 0.0),
                 'media_percentual' => (float)($row['media_percentual'] ?? 0.0),
                 'acumulado_percentual' => (float)($row['acumulado_percentual'] ?? 0.0),
+                'values' => $row['values'] ?? [],
             ];
         }
 
@@ -433,6 +434,7 @@ class DreController
             $row['previous_year_acumulado'] = $previous['acumulado'] ?? 0.0;
             $row['previous_year_media_percentual'] = $previous['media_percentual'] ?? 0.0;
             $row['previous_year_acumulado_percentual'] = $previous['acumulado_percentual'] ?? 0.0;
+            $row['previous_year_values'] = $previous['values'] ?? [];
         }
         unset($row);
     }

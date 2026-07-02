@@ -39,6 +39,33 @@ $comparisonTooltipAttrs = static function (string $label, float $current, float 
         . ' data-tooltip-percent="' . e($percent === null ? '-' : number_format($percent, 1, ',', '.') . '%') . '"';
 };
 
+$chartPayload = static function (array $row, array $months, int $currentYear, int $previousYear): string {
+    $labels = [];
+    $currentValues = [];
+    $previousValues = [];
+
+    foreach ($months as $month) {
+        $labels[] = month_short((int)$month['month']);
+        $currentValues[] = (float)($row['values'][$month['key']] ?? 0.0);
+        $previousKey = sprintf('%04d-%02d', $previousYear, (int)$month['month']);
+        $previousValues[] = (float)($row['previous_year_values'][$previousKey] ?? 0.0);
+    }
+
+    return e(json_encode([
+        'code' => (string)($row['account_code'] ?? ''),
+        'description' => (string)($row['account_description'] ?? ''),
+        'currentYear' => $currentYear,
+        'previousYear' => $previousYear,
+        'labels' => $labels,
+        'current' => $currentValues,
+        'previous' => $previousValues,
+        'currentTotal' => (float)($row['acumulado'] ?? 0.0),
+        'previousTotal' => (float)($row['previous_year_acumulado'] ?? 0.0),
+        'currentAverage' => (float)($row['media'] ?? 0.0),
+        'previousAverage' => (float)($row['previous_year_media'] ?? 0.0),
+    ], JSON_UNESCAPED_UNICODE));
+};
+
 $periodLabel = $fMonthStart === $fMonthEnd
     ? month_short((int)$fMonthStart) . '/' . $fYear
     : month_short((int)$fMonthStart) . '/' . $fYear . ' a ' . month_short((int)$fMonthEnd) . '/' . $fYear;
@@ -239,6 +266,14 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
                 <span class="dre-leaf"></span>
                 <?php endif; ?>
                 <span class="dre-label-text"><?= e($row['account_description']) ?></span>
+                <?php if (abs($acumulado) >= 0.005 || abs($previousYearAcumulado) >= 0.005): ?>
+                <button type="button"
+                        class="dre-chart-trigger"
+                        data-chart="<?= $chartPayload($row, $months, (int)$fYear, (int)$previousYear) ?>"
+                        title="Ver evolução mensal">
+                  <i class="bi bi-graph-up"></i>
+                </button>
+                <?php endif; ?>
               </div>
             </td>
             <?php foreach ($months as $month): ?>
@@ -283,6 +318,45 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
       </table>
     </div>
   </div>
+
+  <div class="dre-chart-backdrop" id="dreChartBackdrop" hidden></div>
+  <aside class="dre-chart-panel" id="dreChartPanel" aria-hidden="true" aria-label="Evolução mensal da conta">
+    <div class="dre-chart-panel-header">
+      <div>
+        <div class="dre-chart-kicker">Evolução mensal</div>
+        <h5 class="dre-chart-title" id="dreChartTitle">Conta</h5>
+        <div class="dre-chart-subtitle" id="dreChartSubtitle"></div>
+      </div>
+      <button type="button" class="btn btn-outline-secondary btn-sm" id="dreChartClose" title="Fechar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <div class="dre-chart-summary">
+      <div>
+        <span>Acumulado atual</span>
+        <strong id="dreChartCurrentTotal">-</strong>
+      </div>
+      <div>
+        <span>Acumulado anterior</span>
+        <strong id="dreChartPreviousTotal">-</strong>
+      </div>
+      <div>
+        <span>Diferença</span>
+        <strong id="dreChartDiff">-</strong>
+      </div>
+      <div>
+        <span>Variação</span>
+        <strong id="dreChartChange">-</strong>
+      </div>
+    </div>
+    <div class="dre-chart-canvas-wrap">
+      <canvas id="dreLineChart" width="720" height="360"></canvas>
+    </div>
+    <div class="dre-chart-legend">
+      <span><i style="background:#2563eb"></i><b id="dreChartCurrentLegend">Atual</b></span>
+      <span><i style="background:#94a3b8"></i><b id="dreChartPreviousLegend">Anterior</b></span>
+    </div>
+  </aside>
   <?php endif; ?>
 </div>
 
@@ -308,6 +382,11 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   const tooltip = document.createElement('div');
   let tooltipTimer = 0;
   let activeTooltipCell = null;
+  const chartPanel = document.getElementById('dreChartPanel');
+  const chartBackdrop = document.getElementById('dreChartBackdrop');
+  const chartCanvas = document.getElementById('dreLineChart');
+  const chartClose = document.getElementById('dreChartClose');
+  let activeChartPayload = null;
 
   tooltip.className = 'dre-value-tooltip';
   document.body.appendChild(tooltip);
@@ -411,6 +490,145 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     activeTooltipCell = null;
     tooltip.classList.remove('is-visible');
   }
+  const brl = new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+
+  function formatMoney(value) {
+    const number = Number(value || 0);
+    if (Math.abs(number) < 0.005) return '-';
+    const formatted = brl.format(Math.abs(number));
+    return number < 0 ? `(${formatted})` : formatted;
+  }
+
+  function formatChange(current, previous) {
+    const currentValue = Number(current || 0);
+    const previousValue = Number(previous || 0);
+    const diff = previousValue < 0 && currentValue >= 0
+      ? currentValue - Math.abs(previousValue)
+      : currentValue - previousValue;
+    const percent = Math.abs(previousValue) >= 0.005 ? (diff / Math.abs(previousValue)) * 100 : null;
+    return {
+      diff,
+      amount: formatMoney(diff),
+      percent: percent === null ? '-' : `${percent.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+    };
+  }
+
+  function drawLineChart(payload) {
+    if (!chartCanvas) return;
+
+    const ctx = chartCanvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const cssWidth = chartCanvas.clientWidth || 720;
+    const cssHeight = chartCanvas.clientHeight || 360;
+    chartCanvas.width = Math.round(cssWidth * dpr);
+    chartCanvas.height = Math.round(cssHeight * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+    const labels = payload.labels || [];
+    const current = (payload.current || []).map(Number);
+    const previous = (payload.previous || []).map(Number);
+    const values = [...current, ...previous, 0];
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    const padding = { top: 22, right: 18, bottom: 42, left: 58 };
+    const plotWidth = cssWidth - padding.left - padding.right;
+    const plotHeight = cssHeight - padding.top - padding.bottom;
+    const range = Math.max(1, max - min);
+    const xFor = index => labels.length <= 1 ? padding.left + plotWidth / 2 : padding.left + (index / (labels.length - 1)) * plotWidth;
+    const yFor = value => padding.top + ((max - value) / range) * plotHeight;
+
+    ctx.font = '11px system-ui, -apple-system, Segoe UI, sans-serif';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.fillStyle = '#94a3b8';
+
+    for (let i = 0; i <= 4; i++) {
+      const y = padding.top + (plotHeight / 4) * i;
+      const value = max - (range / 4) * i;
+      ctx.beginPath();
+      ctx.moveTo(padding.left, y);
+      ctx.lineTo(cssWidth - padding.right, y);
+      ctx.stroke();
+      ctx.fillText(value < 0 ? `-${brl.format(Math.abs(value))}` : brl.format(Math.abs(value)), 8, y + 4);
+    }
+
+    const zeroY = yFor(0);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.beginPath();
+    ctx.moveTo(padding.left, zeroY);
+    ctx.lineTo(cssWidth - padding.right, zeroY);
+    ctx.stroke();
+
+    labels.forEach((label, index) => {
+      ctx.fillStyle = '#64748b';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, xFor(index), cssHeight - 16);
+    });
+    ctx.textAlign = 'left';
+
+    function line(values, color, width, dash = []) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.setLineDash(dash);
+      ctx.beginPath();
+      values.forEach((value, index) => {
+        const x = xFor(index);
+        const y = yFor(value);
+        index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      ctx.setLineDash([]);
+      values.forEach((value, index) => {
+        ctx.fillStyle = '#fff';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(xFor(index), yFor(value), 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+
+    line(previous, '#94a3b8', 2, [5, 5]);
+    line(current, '#2563eb', 2.5);
+  }
+
+  function openChart(payload) {
+    if (!chartPanel || !chartBackdrop) return;
+    activeChartPayload = payload;
+    const change = formatChange(payload.currentTotal, payload.previousTotal);
+    document.getElementById('dreChartTitle').textContent = `${payload.code} ${payload.description}`;
+    document.getElementById('dreChartSubtitle').textContent = `${payload.currentYear} x ${payload.previousYear}`;
+    document.getElementById('dreChartCurrentTotal').textContent = formatMoney(payload.currentTotal);
+    document.getElementById('dreChartPreviousTotal').textContent = formatMoney(payload.previousTotal);
+    document.getElementById('dreChartDiff').textContent = change.amount;
+    document.getElementById('dreChartChange').textContent = change.percent;
+    document.getElementById('dreChartCurrentLegend').textContent = String(payload.currentYear);
+    document.getElementById('dreChartPreviousLegend').textContent = String(payload.previousYear);
+    chartBackdrop.hidden = false;
+    chartBackdrop.classList.add('is-visible');
+    chartPanel.classList.add('is-open');
+    chartPanel.setAttribute('aria-hidden', 'false');
+    window.requestAnimationFrame(() => drawLineChart(payload));
+  }
+
+  function closeChart() {
+    activeChartPayload = null;
+    chartPanel?.classList.remove('is-open');
+    chartPanel?.setAttribute('aria-hidden', 'true');
+    chartBackdrop?.classList.remove('is-visible');
+    window.setTimeout(() => {
+      if (!chartPanel?.classList.contains('is-open') && chartBackdrop) {
+        chartBackdrop.hidden = true;
+      }
+    }, 160);
+  }
 
 
   // Colapso padrão: nivels >= 3 começam fechados
@@ -459,6 +677,17 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     });
   });
 
+  table.querySelectorAll('.dre-chart-trigger').forEach(button => {
+    button.addEventListener('click', event => {
+      event.stopPropagation();
+      try {
+        openChart(JSON.parse(button.dataset.chart || '{}'));
+      } catch (error) {
+        console.error('Nao foi possivel abrir o grafico da conta.', error);
+      }
+    });
+  });
+
   document.getElementById('clearMarks')?.addEventListener('click', () => {
     marked.clear();
     rows.forEach(row => row.classList.remove('is-marked'));
@@ -475,6 +704,13 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     render();
   });
 
+  chartClose?.addEventListener('click', closeChart);
+  chartBackdrop?.addEventListener('click', closeChart);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      closeChart();
+    }
+  });
   search?.addEventListener('input', render);
   table.querySelectorAll('.dre-tooltip-cell').forEach(cell => {
     cell.addEventListener('mouseenter', () => scheduleTooltip(cell));
@@ -492,7 +728,12 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     }
   });
   window.addEventListener('scroll', () => activeTooltipCell ? placeTooltip(activeTooltipCell) : null, true);
-  window.addEventListener('resize', hideTooltip);
+  window.addEventListener('resize', () => {
+    hideTooltip();
+    if (activeChartPayload) {
+      drawLineChart(activeChartPayload);
+    }
+  });
   render();
   updateScrollState();
 })();
