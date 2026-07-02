@@ -26,7 +26,9 @@ $trendIndicator = static function (float $current, float $previous): string {
 };
 
 $comparisonTooltipAttrs = static function (string $label, float $current, float $previous, int $previousYear): string {
-    $diff = $current - $previous;
+    $diff = $previous < 0 && $current >= 0
+        ? $current - abs($previous)
+        : $current - $previous;
     $percent = abs($previous) >= 0.005 ? ($diff / abs($previous)) * 100 : null;
 
     return ' data-tooltip-title="' . e($label) . '"'
