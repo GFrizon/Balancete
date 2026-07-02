@@ -354,60 +354,16 @@ class DreController
         $matrixRows = array_values(array_filter($matrix, static function (array $row): bool {
             return !empty($row['has_children']) || abs((float)$row['acumulado']) >= 0.005;
         }));
-        usort($matrixRows, static function (array $a, array $b): int {
-            return (int)$a['indentation_level'] <=> (int)$b['indentation_level'];
-        });
-
-        $sortLineByKey = [];
-        foreach ($matrixRows as &$row) {
-            $parentKey = (string)($row['parent_key'] ?? '');
-            if ($parentKey !== '' && isset($sortLineByKey[$parentKey])) {
-                $row['sort_line_number'] = $sortLineByKey[$parentKey] + ((float)$row['line_number'] / 1000000);
-            }
-
-            $sortLineByKey[(string)$row['row_key']] = (float)$row['sort_line_number'];
-        }
-        unset($row);
-
-        $parentLineByCode = [];
-        foreach ($matrixRows as $row) {
-            if (!empty($row['is_analytical'])) {
-                continue;
-            }
-
-            $code = (string)$row['account_code'];
-            $line = (float)$row['line_number'];
-            $parentLineByCode[$code] = isset($parentLineByCode[$code])
-                ? min($parentLineByCode[$code], $line)
-                : $line;
-        }
-
-        foreach ($matrixRows as &$row) {
-            if (empty($row['is_analytical'])) {
-                continue;
-            }
-
-            $code = (string)$row['account_code'];
-            if (!isset($parentLineByCode[$code])) {
-                continue;
-            }
-
-            $unitOrder = 0;
-            if (preg_match('/^(\d{3})\s+/', (string)$row['account_description'], $matches)) {
-                $unitOrder = (int)$matches[1];
-            }
-            $row['sort_line_number'] = $parentLineByCode[$code] + ($unitOrder / 10000);
-        }
-        unset($row);
+        $matrixRows = $this->withHierarchySortPath($matrixRows);
 
         usort($matrixRows, static function (array $a, array $b): int {
             return [
-                (float)$a['sort_line_number'],
+                (string)($a['hierarchy_sort_path'] ?? ''),
                 (int)$a['indentation_level'],
                 (string)$a['account_code'],
                 (string)$a['account_description'],
             ] <=> [
-                (float)$b['sort_line_number'],
+                (string)($b['hierarchy_sort_path'] ?? ''),
                 (int)$b['indentation_level'],
                 (string)$b['account_code'],
                 (string)$b['account_description'],
@@ -418,6 +374,41 @@ class DreController
             $this->attachHierarchy($matrixRows),
             static fn (array $row): bool => !empty($row['has_children']) || abs((float)$row['acumulado']) >= 0.005
         ));
+    }
+
+    private function withHierarchySortPath(array $rows): array
+    {
+        $indexByKey = [];
+        foreach ($rows as $index => $row) {
+            $key = (string)($row['row_key'] ?? '');
+            if ($key !== '') {
+                $indexByKey[$key] = $index;
+            }
+        }
+
+        $buildPath = function (int $index) use (&$rows, &$indexByKey, &$buildPath): string {
+            if (isset($rows[$index]['hierarchy_sort_path'])) {
+                return (string)$rows[$index]['hierarchy_sort_path'];
+            }
+
+            $segment = str_pad((string)(int)($rows[$index]['line_number'] ?? 0), 6, '0', STR_PAD_LEFT)
+                . '-' . str_pad((string)(int)($rows[$index]['indentation_level'] ?? 0), 2, '0', STR_PAD_LEFT)
+                . '-' . (string)($rows[$index]['account_code'] ?? '');
+
+            $parentKey = (string)($rows[$index]['parent_key'] ?? '');
+            if ($parentKey !== '' && isset($indexByKey[$parentKey]) && $indexByKey[$parentKey] !== $index) {
+                $segment = $buildPath($indexByKey[$parentKey]) . '/' . $segment;
+            }
+
+            $rows[$index]['hierarchy_sort_path'] = $segment;
+            return $segment;
+        };
+
+        foreach (array_keys($rows) as $index) {
+            $buildPath((int)$index);
+        }
+
+        return $rows;
     }
 
     private function attachPreviousYearTotals(array &$matrixRows, array $previousRows): void
@@ -462,10 +453,29 @@ class DreController
             }
         }
 
+        $uidByKey = [];
+        foreach ($rows as $index => &$row) {
+            $row['row_uid'] = 'dre-row-' . $index;
+            $key = (string)($row['row_key'] ?? '');
+            if ($key !== '') {
+                $uidByKey[$key] = $row['row_uid'];
+            }
+        }
+        unset($row);
+
+        $hasChildrenByKey = [];
+        foreach ($rows as $row) {
+            $parentKey = (string)($row['parent_key'] ?? '');
+            if ($parentKey !== '') {
+                $hasChildrenByKey[$parentKey] = true;
+            }
+        }
+
         for ($i = 0; $i < $count; $i++) {
             $currentLevel = (int)$rows[$i]['indentation_level'];
             $nextLevel = $i + 1 < $count ? (int)$rows[$i + 1]['indentation_level'] : -1;
-            $rows[$i]['has_children'] = $nextLevel > $currentLevel;
+            $key = (string)($rows[$i]['row_key'] ?? '');
+            $rows[$i]['has_children'] = ($key !== '' && !empty($hasChildrenByKey[$key])) || $nextLevel > $currentLevel;
             $rows[$i]['is_group'] = $rows[$i]['has_children'];
         }
 
@@ -478,8 +488,10 @@ class DreController
             }
 
             ksort($stackByLevel);
-            $parentUid = empty($stackByLevel) ? '' : end($stackByLevel);
-            $row['row_uid'] = 'dre-row-' . $index;
+            $parentKey = (string)($row['parent_key'] ?? '');
+            $parentUid = $parentKey !== '' && isset($uidByKey[$parentKey])
+                ? $uidByKey[$parentKey]
+                : (empty($stackByLevel) ? '' : end($stackByLevel));
             $row['parent_uid'] = $parentUid;
             $row['hide_duplicate'] = false;
             $stackByLevel[$level] = $row['row_uid'];
