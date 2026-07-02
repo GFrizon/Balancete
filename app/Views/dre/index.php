@@ -152,7 +152,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
         <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleZeros" title="Ocultar/mostrar linhas zeradas">
           <i class="bi bi-filter"></i><span class="d-none d-md-inline ms-1">Zeros</span>
         </button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" id="collapseAll" title="Recolher grupos">
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="collapseAll" title="Recolher tudo">
           <i class="bi bi-arrows-collapse"></i>
         </button>
         <button type="button" class="btn btn-outline-secondary btn-sm" id="clearMarks" title="Limpar linhas marcadas">
@@ -399,7 +399,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   });
 
   document.getElementById('collapseAll')?.addEventListener('click', () => {
-    rows.filter(row => row.dataset.group === '1' && row.dataset.level !== '0')
+    rows.filter(row => row.dataset.group === '1')
       .forEach(row => collapsed.add(row.dataset.rowId));
     render();
   });
