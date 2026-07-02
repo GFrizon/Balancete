@@ -680,6 +680,8 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
 
     const units = (payload.unitComparison || [])
       .map(unit => ({
+        code: String(unit.code || '').trim(),
+        name: String(unit.name || '').trim(),
         label: String(unit.label || `${unit.code || ''} ${unit.name || ''}`).trim(),
         total: Number(unit.total || 0)
       }))
@@ -696,6 +698,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     }
 
     const max = Math.max(...units.map(unit => Math.abs(unit.total)), 1);
+    const totalAbs = units.reduce((sum, unit) => sum + Math.abs(unit.total), 0);
     units.slice(0, 12).forEach(unit => {
       const row = document.createElement('div');
       row.className = 'dre-chart-unit-row';
@@ -703,14 +706,27 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
       const top = document.createElement('div');
       top.className = 'dre-chart-unit-top';
 
-      const label = document.createElement('span');
-      label.textContent = unit.label || 'Unidade';
+      const label = document.createElement('div');
+      label.className = 'dre-chart-unit-label';
+
+      const labelMain = document.createElement('span');
+      labelMain.textContent = unit.code || 'Unidade';
+
+      const labelSub = document.createElement('small');
+      labelSub.textContent = unit.name || unit.label || 'Unidade';
+
+      label.append(labelMain, labelSub);
 
       const value = document.createElement('strong');
       value.textContent = formatMoney(unit.total);
       value.className = unit.total < 0 ? 'is-negative' : (unit.total > 0 ? 'is-positive' : '');
 
-      top.append(label, value);
+      const share = document.createElement('em');
+      share.textContent = totalAbs > 0
+        ? `${((Math.abs(unit.total) / totalAbs) * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+        : '-';
+
+      top.append(label, value, share);
 
       const track = document.createElement('div');
       track.className = 'dre-chart-unit-track';
