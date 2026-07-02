@@ -777,8 +777,8 @@ body {
 
 .dre-tree-row[data-group="1"] .dre-label {
   border-radius: 6px;
-  margin: -.18rem -.28rem;
-  padding: .18rem .28rem;
+  margin: -.18rem 0;
+  padding: .18rem .28rem .18rem calc((var(--level) * 22px) + .28rem);
   transition: background .15s ease;
 }
 
@@ -1147,6 +1147,10 @@ body {
   .dre-label {
     gap: .25rem;
     padding-left: calc(var(--level) * 14px);
+  }
+
+  .dre-tree-row[data-group="1"] .dre-label {
+    padding: .18rem .28rem .18rem calc((var(--level) * 14px) + .28rem);
   }
 
   .dre-toggle,
