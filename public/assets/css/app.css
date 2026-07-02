@@ -1079,6 +1079,19 @@ body {
   color: #b91c1c !important;
 }
 
+.dre-report-table .dre-value-negative {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
+.dre-report-table tr.is-marked .dre-value-negative {
+  color: #b91c1c !important;
+}
+
+.dre-report-table .dre-value-positive {
+  color: inherit;
+}
+
 .dre-tooltip-cell {
   cursor: help;
   outline: none;

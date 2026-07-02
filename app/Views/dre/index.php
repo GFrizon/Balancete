@@ -9,7 +9,9 @@ $formatSigned = static function (float $value): string {
     }
 
     $formatted = format_brl(abs($value));
-    return $value < 0 ? '(' . $formatted . ')' : $formatted;
+    return $value < 0
+        ? '<span class="dre-value-negative">(' . $formatted . ')</span>'
+        : '<span class="dre-value-positive">' . $formatted . '</span>';
 };
 
 $trendIndicator = static function (float $current, float $previous): string {
