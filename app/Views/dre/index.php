@@ -535,7 +535,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     const ctx = chartCanvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     const cssWidth = chartCanvas.clientWidth || 720;
-    const cssHeight = chartCanvas.clientHeight || 360;
+    const cssHeight = chartCanvas.clientHeight || 280;
     chartCanvas.width = Math.round(cssWidth * dpr);
     chartCanvas.height = Math.round(cssHeight * dpr);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -544,72 +544,135 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     const labels = payload.labels || [];
     const current = (payload.current || []).map(Number);
     const previous = (payload.previous || []).map(Number);
-    const values = [...current, ...previous, 0];
-    const max = Math.max(...values);
-    const min = Math.min(...values);
-    const padding = { top: 22, right: 18, bottom: 42, left: 58 };
+    const values = [...current, ...previous, 0].filter(Number.isFinite);
+    const rawMax = Math.max(...values, 1);
+    const rawMin = Math.min(...values, 0);
+    const span = Math.max(1, rawMax - rawMin);
+    const max = rawMax + span * 0.12;
+    const min = rawMin - span * 0.12;
+    const padding = { top: 18, right: 16, bottom: 34, left: 66 };
     const plotWidth = cssWidth - padding.left - padding.right;
     const plotHeight = cssHeight - padding.top - padding.bottom;
     const range = Math.max(1, max - min);
     const xFor = index => labels.length <= 1 ? padding.left + plotWidth / 2 : padding.left + (index / (labels.length - 1)) * plotWidth;
     const yFor = value => padding.top + ((max - value) / range) * plotHeight;
+    const clampY = value => Math.max(padding.top, Math.min(padding.top + plotHeight, yFor(value)));
+    const zeroY = clampY(0);
+
+    function formatAxis(value) {
+      const abs = Math.abs(value);
+      const sign = value < 0 ? '-' : '';
+      if (abs >= 1000000) {
+        return `${sign}${(abs / 1000000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`;
+      }
+      if (abs >= 1000) {
+        return `${sign}${(abs / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 0 })} mil`;
+      }
+      return `${sign}${abs.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}`;
+    }
+
+    function smoothPath(points) {
+      if (!points.length) return;
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        const prev = points[i - 1];
+        const currentPoint = points[i];
+        const midX = (prev.x + currentPoint.x) / 2;
+        ctx.bezierCurveTo(midX, prev.y, midX, currentPoint.y, currentPoint.x, currentPoint.y);
+      }
+    }
+
+    function pointsFor(series) {
+      return series.map((value, index) => ({ x: xFor(index), y: yFor(value), value }));
+    }
 
     ctx.font = '11px system-ui, -apple-system, Segoe UI, sans-serif';
     ctx.lineWidth = 1;
-    ctx.strokeStyle = '#e2e8f0';
-    ctx.fillStyle = '#94a3b8';
+    ctx.textBaseline = 'middle';
 
-    for (let i = 0; i <= 4; i++) {
-      const y = padding.top + (plotHeight / 4) * i;
-      const value = max - (range / 4) * i;
+    const ticks = 4;
+    for (let i = 0; i <= ticks; i++) {
+      const y = padding.top + (plotHeight / ticks) * i;
+      const value = max - (range / ticks) * i;
+      ctx.strokeStyle = i === ticks ? '#d8e2ee' : '#edf2f7';
       ctx.beginPath();
       ctx.moveTo(padding.left, y);
       ctx.lineTo(cssWidth - padding.right, y);
       ctx.stroke();
-      ctx.fillText(value < 0 ? `-${brl.format(Math.abs(value))}` : brl.format(Math.abs(value)), 8, y + 4);
+      ctx.fillStyle = '#8aa0ba';
+      ctx.textAlign = 'right';
+      ctx.fillText(formatAxis(value), padding.left - 10, y);
     }
 
-    const zeroY = yFor(0);
-    ctx.strokeStyle = '#cbd5e1';
+    ctx.strokeStyle = '#bac8d8';
+    ctx.setLineDash([2, 4]);
     ctx.beginPath();
     ctx.moveTo(padding.left, zeroY);
     ctx.lineTo(cssWidth - padding.right, zeroY);
     ctx.stroke();
+    ctx.setLineDash([]);
 
     labels.forEach((label, index) => {
-      ctx.fillStyle = '#64748b';
+      ctx.fillStyle = '#6f8199';
       ctx.textAlign = 'center';
-      ctx.fillText(label, xFor(index), cssHeight - 16);
+      ctx.fillText(label, xFor(index), cssHeight - 15);
     });
-    ctx.textAlign = 'left';
 
-    function line(values, color, width, dash = []) {
+    const previousPoints = pointsFor(previous);
+    const currentPoints = pointsFor(current);
+
+    if (currentPoints.length) {
       ctx.save();
+      smoothPath(currentPoints);
+      ctx.lineTo(currentPoints[currentPoints.length - 1].x, zeroY);
+      ctx.lineTo(currentPoints[0].x, zeroY);
+      ctx.closePath();
+      const areaGradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + plotHeight);
+      areaGradient.addColorStop(0, 'rgba(37, 99, 235, .14)');
+      areaGradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
+      ctx.fillStyle = areaGradient;
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function line(points, color, width, dash = []) {
+      if (!points.length) return;
+      ctx.save();
+      ctx.setLineDash([]);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.strokeStyle = color;
       ctx.lineWidth = width;
       ctx.setLineDash(dash);
-      ctx.beginPath();
-      values.forEach((value, index) => {
-        const x = xFor(index);
-        const y = yFor(value);
-        index === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-      });
+      smoothPath(points);
       ctx.stroke();
-      ctx.setLineDash([]);
-      values.forEach((value, index) => {
+      ctx.restore();
+    }
+
+    line(previousPoints, '#9aacbf', 2, [5, 6]);
+
+    const currentGradient = ctx.createLinearGradient(padding.left, 0, cssWidth - padding.right, 0);
+    currentGradient.addColorStop(0, '#2f80ed');
+    currentGradient.addColorStop(1, '#1d4ed8');
+    line(currentPoints, currentGradient, 2.6);
+
+    function points(points, color, radius) {
+      ctx.save();
+      points.forEach(point => {
         ctx.fillStyle = '#fff';
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(xFor(index), yFor(value), 3.5, 0, Math.PI * 2);
+        ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
       });
       ctx.restore();
     }
 
-    line(previous, '#94a3b8', 2, [5, 5]);
-    line(current, '#2563eb', 2.5);
+    points(previousPoints, '#9aacbf', 3.2);
+    points(currentPoints, '#2563eb', 3.6);
   }
 
   function renderUnitComparison(payload) {
