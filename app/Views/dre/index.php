@@ -25,6 +25,18 @@ $trendIndicator = static function (float $current, float $previous): string {
     return '<span class="' . $color . ' ms-1" title="' . $label . '"><i class="bi ' . $icon . '"></i></span>';
 };
 
+$comparisonTooltipAttrs = static function (string $label, float $current, float $previous, int $previousYear): string {
+    $diff = $current - $previous;
+    $percent = abs($previous) >= 0.005 ? ($diff / abs($previous)) * 100 : null;
+
+    return ' data-tooltip-title="' . e($label) . '"'
+        . ' data-tooltip-current="' . e(format_brl($current)) . '"'
+        . ' data-tooltip-previous="' . e(format_brl($previous)) . '"'
+        . ' data-tooltip-previous-label="' . e((string)$previousYear) . '"'
+        . ' data-tooltip-diff="' . e(format_brl($diff)) . '"'
+        . ' data-tooltip-percent="' . e($percent === null ? '-' : number_format($percent, 1, ',', '.') . '%') . '"';
+};
+
 $periodLabel = $fMonthStart === $fMonthEnd
     ? month_short((int)$fMonthStart) . '/' . $fYear
     : month_short((int)$fMonthStart) . '/' . $fYear . ' a ' . month_short((int)$fMonthEnd) . '/' . $fYear;
@@ -152,6 +164,9 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
         <button type="button" class="btn btn-outline-secondary btn-sm" id="toggleZeros" title="Ocultar/mostrar linhas zeradas">
           <i class="bi bi-filter"></i><span class="d-none d-md-inline ms-1">Zeros</span>
         </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="expandAll" title="Expandir tudo">
+          <i class="bi bi-arrows-expand"></i>
+        </button>
         <button type="button" class="btn btn-outline-secondary btn-sm" id="collapseAll" title="Recolher tudo">
           <i class="bi bi-arrows-collapse"></i>
         </button>
@@ -236,13 +251,13 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
               <?php endif; ?>
             </td>
             <?php endforeach; ?>
-            <td class="text-end dre-money <?= $acumulado < 0 ? 'is-negative' : ($acumulado > 0 ? 'is-positive' : '') ?>">
+            <td class="text-end dre-money dre-tooltip-cell <?= $acumulado < 0 ? 'is-negative' : ($acumulado > 0 ? 'is-positive' : '') ?>" tabindex="0"<?= $comparisonTooltipAttrs('Acumulado', $acumulado, $previousYearAcumulado, (int)$previousYear) ?>>
               <div><?= $formatSigned($acumulado) ?><?= $trendIndicator($acumulado, $previousYearAcumulado) ?></div>
               <?php if (abs($acumuladoPercentual) >= 0.01): ?>
               <div class="dre-percent"><?= number_format($acumuladoPercentual, 1, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
-            <td class="text-end dre-money <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>">
+            <td class="text-end dre-money dre-tooltip-cell <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>" tabindex="0"<?= $comparisonTooltipAttrs('Media', $media, $previousYearMedia, (int)$previousYear) ?>>
               <div><?= $formatSigned($media) ?><?= $trendIndicator($media, $previousYearMedia) ?></div>
               <?php if (abs($mediaPercentual) >= 0.01): ?>
               <div class="dre-percent"><?= number_format($mediaPercentual, 1, ',', '.') ?>%</div>
@@ -288,6 +303,12 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   const marked = new Set();
   const rowById = new Map(rows.map(row => [row.dataset.rowId, row]));
   const scrollWrap = table.closest('.dre-report-scroll');
+  const tooltip = document.createElement('div');
+  let tooltipTimer = 0;
+  let activeTooltipCell = null;
+
+  tooltip.className = 'dre-value-tooltip';
+  document.body.appendChild(tooltip);
 
   function updateScrollState() {
     if (!scrollWrap) return;
@@ -339,6 +360,54 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
 
       row.classList.toggle('is-marked', marked.has(row.dataset.rowId));
     });
+  }
+
+  function tooltipHtml(cell) {
+    return `
+      <div class="dre-value-tooltip-title">${cell.dataset.tooltipTitle || ''}</div>
+      <div class="dre-value-tooltip-row"><span>Atual</span><strong>${cell.dataset.tooltipCurrent || '-'}</strong></div>
+      <div class="dre-value-tooltip-row"><span>${cell.dataset.tooltipPreviousLabel || 'Anterior'}</span><strong>${cell.dataset.tooltipPrevious || '-'}</strong></div>
+      <div class="dre-value-tooltip-divider"></div>
+      <div class="dre-value-tooltip-row"><span>Diferença</span><strong>${cell.dataset.tooltipDiff || '-'}</strong></div>
+      <div class="dre-value-tooltip-row"><span>Variação</span><strong>${cell.dataset.tooltipPercent || '-'}</strong></div>
+    `;
+  }
+
+  function placeTooltip(cell) {
+    const rect = cell.getBoundingClientRect();
+    tooltip.style.left = '0px';
+    tooltip.style.top = '0px';
+    tooltip.classList.add('is-visible');
+
+    const tipRect = tooltip.getBoundingClientRect();
+    const margin = 10;
+    const left = Math.min(
+      window.innerWidth - tipRect.width - margin,
+      Math.max(margin, rect.left + rect.width / 2 - tipRect.width / 2)
+    );
+    const top = rect.top >= tipRect.height + margin
+      ? rect.top - tipRect.height - 8
+      : rect.bottom + 8;
+
+    tooltip.style.left = `${left}px`;
+    tooltip.style.top = `${Math.min(window.innerHeight - tipRect.height - margin, Math.max(margin, top))}px`;
+  }
+
+  function showTooltip(cell) {
+    activeTooltipCell = cell;
+    tooltip.innerHTML = tooltipHtml(cell);
+    placeTooltip(cell);
+  }
+
+  function scheduleTooltip(cell) {
+    window.clearTimeout(tooltipTimer);
+    tooltipTimer = window.setTimeout(() => showTooltip(cell), 350);
+  }
+
+  function hideTooltip() {
+    window.clearTimeout(tooltipTimer);
+    activeTooltipCell = null;
+    tooltip.classList.remove('is-visible');
   }
 
 
@@ -405,6 +474,23 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   });
 
   search?.addEventListener('input', render);
+  table.querySelectorAll('.dre-tooltip-cell').forEach(cell => {
+    cell.addEventListener('mouseenter', () => scheduleTooltip(cell));
+    cell.addEventListener('mouseleave', hideTooltip);
+    cell.addEventListener('focus', () => showTooltip(cell));
+    cell.addEventListener('blur', hideTooltip);
+    cell.addEventListener('click', event => {
+      event.stopPropagation();
+      showTooltip(cell);
+    });
+  });
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.dre-tooltip-cell')) {
+      hideTooltip();
+    }
+  });
+  window.addEventListener('scroll', () => activeTooltipCell ? placeTooltip(activeTooltipCell) : null, true);
+  window.addEventListener('resize', hideTooltip);
   render();
   updateScrollState();
 })();
