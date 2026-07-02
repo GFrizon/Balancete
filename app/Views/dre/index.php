@@ -359,10 +359,10 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
       <span><i style="background:#2563eb"></i><b id="dreChartCurrentLegend">Atual</b></span>
       <span><i style="background:#94a3b8"></i><b id="dreChartPreviousLegend">Anterior</b></span>
     </div>
-    <div class="dre-chart-units" id="dreChartUnitsSection" hidden>
+    <div class="dre-chart-units" id="dreChartUnitsSection" data-period="<?= e($periodLabel) ?>" hidden>
       <div class="dre-chart-units-header">
         <span>Comparativo por unidade</span>
-        <small>Período filtrado</small>
+        <small id="dreChartUnitsPeriod"><?= e($periodLabel) ?></small>
       </div>
       <div class="dre-chart-units-list" id="dreChartUnits"></div>
     </div>
@@ -398,6 +398,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   const chartClose = document.getElementById('dreChartClose');
   const chartUnitsSection = document.getElementById('dreChartUnitsSection');
   const chartUnits = document.getElementById('dreChartUnits');
+  const chartUnitsPeriod = document.getElementById('dreChartUnitsPeriod');
   let activeChartPayload = null;
 
   tooltip.className = 'dre-value-tooltip';
@@ -622,6 +623,10 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
       .filter(unit => Math.abs(unit.total) >= 0.005);
 
     chartUnits.replaceChildren();
+    if (chartUnitsPeriod) {
+      chartUnitsPeriod.textContent = chartUnitsSection.dataset.period || '';
+    }
+
     if (!units.length) {
       chartUnitsSection.hidden = true;
       return;
