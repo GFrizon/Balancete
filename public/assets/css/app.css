@@ -770,6 +770,22 @@ body {
   transition: opacity .15s;
 }
 
+.dre-tree-row[data-group="1"] .dre-code-col,
+.dre-tree-row[data-group="1"] .dre-desc-col {
+  cursor: pointer;
+}
+
+.dre-tree-row[data-group="1"] .dre-label {
+  border-radius: 6px;
+  margin: -.18rem -.28rem;
+  padding: .18rem .28rem;
+  transition: background .15s ease;
+}
+
+.dre-tree-row[data-group="1"] .dre-desc-col:hover .dre-label {
+  background: rgba(59, 130, 246, .08);
+}
+
 .dre-toggle i {
   transition: transform .2s ease;
   font-size: .7rem;

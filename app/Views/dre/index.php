@@ -361,15 +361,23 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   table.querySelectorAll('[data-toggle-group]').forEach(button => {
     button.addEventListener('click', event => {
       event.stopPropagation();
-      const rowId = button.dataset.toggleGroup;
-      collapsed.has(rowId) ? collapsed.delete(rowId) : collapsed.add(rowId);
-      render();
+      toggleGroup(button.dataset.toggleGroup);
     });
   });
+
+  function toggleGroup(rowId) {
+    if (!rowId) return;
+    collapsed.has(rowId) ? collapsed.delete(rowId) : collapsed.add(rowId);
+    render();
+  }
 
   rows.forEach(row => {
     row.addEventListener('click', event => {
       if (event.target.closest('a, button, input, select')) return;
+      if (row.dataset.group === '1' && event.target.closest('.dre-code-col, .dre-desc-col')) {
+        toggleGroup(row.dataset.rowId);
+        return;
+      }
       if (marked.has(row.dataset.rowId)) {
         marked.delete(row.dataset.rowId);
         row.classList.remove('is-marked');
