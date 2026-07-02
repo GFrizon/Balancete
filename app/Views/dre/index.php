@@ -65,6 +65,7 @@ $chartPayload = static function (array $row, array $months, int $currentYear, in
         'previousTotal' => (float)($row['previous_year_acumulado'] ?? 0.0),
         'currentAverage' => (float)($row['media'] ?? 0.0),
         'previousAverage' => (float)($row['previous_year_media'] ?? 0.0),
+        'unitComparison' => $row['unit_comparison'] ?? [],
     ], JSON_UNESCAPED_UNICODE));
 };
 
@@ -358,6 +359,13 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
       <span><i style="background:#2563eb"></i><b id="dreChartCurrentLegend">Atual</b></span>
       <span><i style="background:#94a3b8"></i><b id="dreChartPreviousLegend">Anterior</b></span>
     </div>
+    <div class="dre-chart-units" id="dreChartUnitsSection" hidden>
+      <div class="dre-chart-units-header">
+        <span>Comparativo por unidade</span>
+        <small>Período filtrado</small>
+      </div>
+      <div class="dre-chart-units-list" id="dreChartUnits"></div>
+    </div>
   </aside>
   <?php endif; ?>
 </div>
@@ -388,6 +396,8 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   const chartBackdrop = document.getElementById('dreChartBackdrop');
   const chartCanvas = document.getElementById('dreLineChart');
   const chartClose = document.getElementById('dreChartClose');
+  const chartUnitsSection = document.getElementById('dreChartUnitsSection');
+  const chartUnits = document.getElementById('dreChartUnits');
   let activeChartPayload = null;
 
   tooltip.className = 'dre-value-tooltip';
@@ -601,6 +611,54 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     line(current, '#2563eb', 2.5);
   }
 
+  function renderUnitComparison(payload) {
+    if (!chartUnitsSection || !chartUnits) return;
+
+    const units = (payload.unitComparison || [])
+      .map(unit => ({
+        label: String(unit.label || `${unit.code || ''} ${unit.name || ''}`).trim(),
+        total: Number(unit.total || 0)
+      }))
+      .filter(unit => Math.abs(unit.total) >= 0.005);
+
+    chartUnits.replaceChildren();
+    if (!units.length) {
+      chartUnitsSection.hidden = true;
+      return;
+    }
+
+    const max = Math.max(...units.map(unit => Math.abs(unit.total)), 1);
+    units.slice(0, 12).forEach(unit => {
+      const row = document.createElement('div');
+      row.className = 'dre-chart-unit-row';
+
+      const top = document.createElement('div');
+      top.className = 'dre-chart-unit-top';
+
+      const label = document.createElement('span');
+      label.textContent = unit.label || 'Unidade';
+
+      const value = document.createElement('strong');
+      value.textContent = formatMoney(unit.total);
+      value.className = unit.total < 0 ? 'is-negative' : (unit.total > 0 ? 'is-positive' : '');
+
+      top.append(label, value);
+
+      const track = document.createElement('div');
+      track.className = 'dre-chart-unit-track';
+
+      const bar = document.createElement('i');
+      bar.className = unit.total < 0 ? 'is-negative' : 'is-positive';
+      bar.style.width = `${Math.max(4, (Math.abs(unit.total) / max) * 100)}%`;
+      track.append(bar);
+
+      row.append(top, track);
+      chartUnits.append(row);
+    });
+
+    chartUnitsSection.hidden = false;
+  }
+
   function openChart(payload) {
     if (!chartPanel || !chartBackdrop) return;
     activeChartPayload = payload;
@@ -617,6 +675,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     chartBackdrop.classList.add('is-visible');
     chartPanel.classList.add('is-open');
     chartPanel.setAttribute('aria-hidden', 'false');
+    renderUnitComparison(payload);
     window.requestAnimationFrame(() => drawLineChart(payload));
   }
 

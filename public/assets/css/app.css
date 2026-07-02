@@ -1283,6 +1283,92 @@ body {
   display: inline-block;
 }
 
+.dre-chart-units {
+  padding: .7rem .75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.dre-chart-units-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .45rem;
+}
+
+.dre-chart-units-header span {
+  color: #0f172a;
+  font-size: .82rem;
+  font-weight: 800;
+}
+
+.dre-chart-units-header small {
+  color: #64748b;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.dre-chart-units-list {
+  display: grid;
+  gap: .48rem;
+}
+
+.dre-chart-unit-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  margin-bottom: .18rem;
+  color: #475569;
+  font-size: .76rem;
+}
+
+.dre-chart-unit-top span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dre-chart-unit-top strong {
+  flex: 0 0 auto;
+  color: #0f172a;
+  font-size: .76rem;
+  font-weight: 700;
+}
+
+.dre-chart-unit-top strong.is-positive {
+  color: #047857;
+}
+
+.dre-chart-unit-top strong.is-negative {
+  color: #b65f4a;
+}
+
+.dre-chart-unit-track {
+  height: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #edf2f7;
+}
+
+.dre-chart-unit-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.dre-chart-unit-track i.is-positive {
+  background: linear-gradient(90deg, #8fdcc8, #2fbf90);
+}
+
+.dre-chart-unit-track i.is-negative {
+  background: linear-gradient(90deg, #e7b0a3, #b65f4a);
+}
+
 .dre-report-scroll::-webkit-scrollbar {
   width: 10px;
   height: 10px;

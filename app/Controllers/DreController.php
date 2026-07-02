@@ -49,6 +49,7 @@ class DreController
         $previousMatrixRows = $this->buildMatrix($previousTreeRows, $previousMonths, $fUnit === 0);
         $matrixRows = $this->buildMatrix($treeRows, $months, $fUnit === 0);
         $this->attachPreviousYearTotals($matrixRows, $previousMatrixRows);
+        $this->attachUnitComparisons($matrixRows, $this->buildUnitComparisons($treeRows, $months, $fUnit === 0));
 
         view('dre/index', compact(
             'companyOptions', 'units', 'yearsAvailable',
@@ -435,6 +436,72 @@ class DreController
             $row['previous_year_media_percentual'] = $previous['media_percentual'] ?? 0.0;
             $row['previous_year_acumulado_percentual'] = $previous['acumulado_percentual'] ?? 0.0;
             $row['previous_year_values'] = $previous['values'] ?? [];
+        }
+        unset($row);
+    }
+
+    private function buildUnitComparisons(array $treeRows, array $months, bool $consolidateUnits): array
+    {
+        $monthKeys = array_flip(array_column($months, 'key'));
+        $comparisons = [];
+
+        foreach ($treeRows as $row) {
+            if ($consolidateUnits && !empty($row['is_analytical'])) {
+                continue;
+            }
+
+            $monthKey = sprintf('%04d-%02d', (int)$row['year'], (int)$row['month']);
+            if (!isset($monthKeys[$monthKey])) {
+                continue;
+            }
+
+            $row['account_description'] = $this->cleanAccountDescription((string)$row['account_description']);
+            $rowKey = $this->rowKey($row);
+            $unitCode = trim((string)($row['unit_code'] ?? ''));
+            $unitName = trim((string)($row['unit_name'] ?? ''));
+            $unitKey = $unitCode !== '' ? $unitCode : $unitName;
+
+            if ($unitKey === '') {
+                continue;
+            }
+
+            if (!isset($comparisons[$rowKey][$unitKey])) {
+                $comparisons[$rowKey][$unitKey] = [
+                    'code' => $unitCode,
+                    'name' => $unitName,
+                    'label' => trim($unitCode . ($unitName !== '' ? ' - ' . $unitName : '')),
+                    'total' => 0.0,
+                ];
+            }
+
+            $comparisons[$rowKey][$unitKey]['total'] += (float)($row['signed_movement'] ?? 0.0);
+        }
+
+        foreach ($comparisons as $rowKey => $units) {
+            $units = array_values(array_filter(
+                $units,
+                static fn (array $unit): bool => abs((float)$unit['total']) >= 0.005
+            ));
+
+            usort($units, static function (array $a, array $b): int {
+                $amountOrder = abs((float)$b['total']) <=> abs((float)$a['total']);
+                if ($amountOrder !== 0) {
+                    return $amountOrder;
+                }
+
+                return (string)$a['code'] <=> (string)$b['code'];
+            });
+
+            $comparisons[$rowKey] = $units;
+        }
+
+        return $comparisons;
+    }
+
+    private function attachUnitComparisons(array &$matrixRows, array $unitComparisons): void
+    {
+        foreach ($matrixRows as &$row) {
+            $row['unit_comparison'] = $unitComparisons[$this->rowKey($row)] ?? [];
         }
         unset($row);
     }
