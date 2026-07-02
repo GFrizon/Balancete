@@ -700,11 +700,9 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     const max = Math.max(...units.map(unit => Math.abs(unit.total)), 1);
     const totalAbs = units.reduce((sum, unit) => sum + Math.abs(unit.total), 0);
     units.slice(0, 12).forEach(unit => {
+      const percent = totalAbs > 0 ? (Math.abs(unit.total) / totalAbs) * 100 : 0;
       const row = document.createElement('div');
       row.className = 'dre-chart-unit-row';
-
-      const top = document.createElement('div');
-      top.className = 'dre-chart-unit-top';
 
       const label = document.createElement('div');
       label.className = 'dre-chart-unit-label';
@@ -717,26 +715,29 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
 
       label.append(labelMain, labelSub);
 
-      const value = document.createElement('strong');
-      value.textContent = formatMoney(unit.total);
-      value.className = unit.total < 0 ? 'is-negative' : (unit.total > 0 ? 'is-positive' : '');
-
-      const share = document.createElement('em');
-      share.textContent = totalAbs > 0
-        ? `${((Math.abs(unit.total) / totalAbs) * 100).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
-        : '-';
-
-      top.append(label, value, share);
+      const plot = document.createElement('div');
+      plot.className = 'dre-chart-unit-plot';
 
       const track = document.createElement('div');
       track.className = 'dre-chart-unit-track';
 
       const bar = document.createElement('i');
       bar.className = unit.total < 0 ? 'is-negative' : 'is-positive';
-      bar.style.width = `${Math.max(4, (Math.abs(unit.total) / max) * 100)}%`;
-      track.append(bar);
+      bar.style.width = `${Math.max(3, (Math.abs(unit.total) / max) * 100)}%`;
 
-      row.append(top, track);
+      const value = document.createElement('strong');
+      value.textContent = formatMoney(unit.total);
+      value.className = unit.total < 0 ? 'is-negative' : (unit.total > 0 ? 'is-positive' : '');
+
+      track.append(bar);
+      plot.append(track, value);
+
+      const share = document.createElement('em');
+      share.textContent = percent > 0
+        ? `${percent.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+        : '-';
+
+      row.append(label, plot, share);
       chartUnits.append(row);
     });
 
