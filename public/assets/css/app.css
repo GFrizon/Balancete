@@ -1313,6 +1313,31 @@ body {
   text-transform: uppercase;
 }
 
+.dre-chart-units-header > div {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.dre-chart-units-header button {
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #fff;
+  color: #475569;
+  font-size: .64rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: .28rem .48rem;
+  text-transform: uppercase;
+}
+
+.dre-chart-units-header button:hover,
+.dre-chart-units-header button:focus {
+  border-color: #93c5fd;
+  color: #1d4ed8;
+  outline: none;
+}
+
 .dre-chart-units-list {
   display: grid;
   gap: .42rem;
@@ -1324,6 +1349,21 @@ body {
   align-items: center;
   gap: .6rem;
   min-height: 32px;
+  padding: .18rem .22rem;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background .14s ease, box-shadow .14s ease;
+}
+
+.dre-chart-unit-row:hover,
+.dre-chart-unit-row:focus {
+  background: #f5f9fc;
+  outline: none;
+}
+
+.dre-chart-unit-row.is-active {
+  background: #eef6ff;
+  box-shadow: inset 0 0 0 1px #bfdbfe;
 }
 
 .dre-chart-unit-label {

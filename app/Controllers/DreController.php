@@ -49,7 +49,9 @@ class DreController
         $previousMatrixRows = $this->buildMatrix($previousTreeRows, $previousMonths, $fUnit === 0);
         $matrixRows = $this->buildMatrix($treeRows, $months, $fUnit === 0);
         $this->attachPreviousYearTotals($matrixRows, $previousMatrixRows);
-        $this->attachUnitComparisons($matrixRows, $this->buildUnitComparisons($treeRows, $months, $fUnit === 0));
+        $unitComparisons = $this->buildUnitComparisons($treeRows, $months, $fUnit === 0);
+        $previousUnitComparisons = $this->buildUnitComparisons($previousTreeRows, $previousMonths, $fUnit === 0);
+        $this->attachUnitComparisons($matrixRows, $unitComparisons, $previousUnitComparisons);
 
         view('dre/index', compact(
             'companyOptions', 'units', 'yearsAvailable',
@@ -471,10 +473,13 @@ class DreController
                     'name' => $unitName,
                     'label' => trim($unitCode . ($unitName !== '' ? ' - ' . $unitName : '')),
                     'total' => 0.0,
+                    'values' => [],
                 ];
             }
 
-            $comparisons[$rowKey][$unitKey]['total'] += (float)($row['signed_movement'] ?? 0.0);
+            $amount = (float)($row['signed_movement'] ?? 0.0);
+            $comparisons[$rowKey][$unitKey]['total'] += $amount;
+            $comparisons[$rowKey][$unitKey]['values'][$monthKey] = ($comparisons[$rowKey][$unitKey]['values'][$monthKey] ?? 0.0) + $amount;
         }
 
         foreach ($comparisons as $rowKey => $units) {
@@ -498,10 +503,25 @@ class DreController
         return $comparisons;
     }
 
-    private function attachUnitComparisons(array &$matrixRows, array $unitComparisons): void
+    private function attachUnitComparisons(array &$matrixRows, array $unitComparisons, array $previousUnitComparisons): void
     {
         foreach ($matrixRows as &$row) {
-            $row['unit_comparison'] = $unitComparisons[$this->rowKey($row)] ?? [];
+            $rowKey = $this->rowKey($row);
+            $units = $unitComparisons[$rowKey] ?? [];
+            $previousByCode = [];
+
+            foreach ($previousUnitComparisons[$rowKey] ?? [] as $previousUnit) {
+                $previousByCode[(string)($previousUnit['code'] ?? $previousUnit['label'] ?? '')] = $previousUnit;
+            }
+
+            foreach ($units as &$unit) {
+                $previous = $previousByCode[(string)($unit['code'] ?? $unit['label'] ?? '')] ?? null;
+                $unit['previous_total'] = (float)($previous['total'] ?? 0.0);
+                $unit['previous_values'] = $previous['values'] ?? [];
+            }
+            unset($unit);
+
+            $row['unit_comparison'] = $units;
         }
         unset($row);
     }

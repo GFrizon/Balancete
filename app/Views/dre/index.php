@@ -43,13 +43,17 @@ $comparisonTooltipAttrs = static function (string $label, float $current, float 
 
 $chartPayload = static function (array $row, array $months, int $currentYear, int $previousYear): string {
     $labels = [];
+    $monthKeys = [];
+    $previousMonthKeys = [];
     $currentValues = [];
     $previousValues = [];
 
     foreach ($months as $month) {
         $labels[] = month_short((int)$month['month']);
+        $monthKeys[] = (string)$month['key'];
         $currentValues[] = (float)($row['values'][$month['key']] ?? 0.0);
         $previousKey = sprintf('%04d-%02d', $previousYear, (int)$month['month']);
+        $previousMonthKeys[] = $previousKey;
         $previousValues[] = (float)($row['previous_year_values'][$previousKey] ?? 0.0);
     }
 
@@ -59,6 +63,8 @@ $chartPayload = static function (array $row, array $months, int $currentYear, in
         'currentYear' => $currentYear,
         'previousYear' => $previousYear,
         'labels' => $labels,
+        'monthKeys' => $monthKeys,
+        'previousMonthKeys' => $previousMonthKeys,
         'current' => $currentValues,
         'previous' => $previousValues,
         'currentTotal' => (float)($row['acumulado'] ?? 0.0),
@@ -362,7 +368,10 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     <div class="dre-chart-units" id="dreChartUnitsSection" data-period="<?= e($periodLabel) ?>" hidden>
       <div class="dre-chart-units-header">
         <span>Comparativo por unidade</span>
-        <small id="dreChartUnitsPeriod"><?= e($periodLabel) ?></small>
+        <div>
+          <small id="dreChartUnitsPeriod"><?= e($periodLabel) ?></small>
+          <button type="button" id="dreChartResetUnit" hidden>Consolidado</button>
+        </div>
       </div>
       <div class="dre-chart-units-list" id="dreChartUnits"></div>
     </div>
@@ -399,7 +408,10 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   const chartUnitsSection = document.getElementById('dreChartUnitsSection');
   const chartUnits = document.getElementById('dreChartUnits');
   const chartUnitsPeriod = document.getElementById('dreChartUnitsPeriod');
+  const chartResetUnit = document.getElementById('dreChartResetUnit');
   let activeChartPayload = null;
+  let activeBasePayload = null;
+  let activeUnitCode = '';
 
   tooltip.className = 'dre-value-tooltip';
   document.body.appendChild(tooltip);
@@ -703,6 +715,10 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
       const percent = totalAbs > 0 ? (Math.abs(unit.total) / totalAbs) * 100 : 0;
       const row = document.createElement('div');
       row.className = 'dre-chart-unit-row';
+      row.tabIndex = 0;
+      row.role = 'button';
+      row.dataset.unitCode = unit.code || unit.label;
+      row.classList.toggle('is-active', activeUnitCode !== '' && row.dataset.unitCode === activeUnitCode);
 
       const label = document.createElement('div');
       label.className = 'dre-chart-unit-label';
@@ -738,34 +754,80 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
         : '-';
 
       row.append(label, plot, share);
+      row.addEventListener('click', () => selectChartUnit(unit));
+      row.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectChartUnit(unit);
+        }
+      });
       chartUnits.append(row);
     });
 
     chartUnitsSection.hidden = false;
   }
 
-  function openChart(payload) {
-    if (!chartPanel || !chartBackdrop) return;
+  function updateChartView(payload, subtitle = '') {
     activeChartPayload = payload;
     const change = formatChange(payload.currentTotal, payload.previousTotal);
     document.getElementById('dreChartTitle').textContent = `${payload.code} ${payload.description}`;
-    document.getElementById('dreChartSubtitle').textContent = `${payload.currentYear} x ${payload.previousYear}`;
+    document.getElementById('dreChartSubtitle').textContent = subtitle || `${payload.currentYear} x ${payload.previousYear}`;
     document.getElementById('dreChartCurrentTotal').textContent = formatMoney(payload.currentTotal);
     document.getElementById('dreChartPreviousTotal').textContent = formatMoney(payload.previousTotal);
     document.getElementById('dreChartDiff').textContent = change.amount;
     document.getElementById('dreChartChange').textContent = change.percent;
     document.getElementById('dreChartCurrentLegend').textContent = String(payload.currentYear);
     document.getElementById('dreChartPreviousLegend').textContent = String(payload.previousYear);
+    window.requestAnimationFrame(() => drawLineChart(payload));
+  }
+
+  function selectChartUnit(unit) {
+    if (!activeBasePayload) return;
+
+    activeUnitCode = String(unit.code || unit.label || '');
+    const current = (activeBasePayload.monthKeys || []).map(key => Number((unit.values || {})[key] || 0));
+    const previous = (activeBasePayload.previousMonthKeys || []).map(key => Number((unit.previous_values || {})[key] || 0));
+    const unitPayload = {
+      ...activeBasePayload,
+      description: `${activeBasePayload.description} · ${unit.code || unit.label}`,
+      current,
+      previous,
+      currentTotal: Number(unit.total || 0),
+      previousTotal: Number(unit.previous_total || 0),
+      currentAverage: current.length ? current.reduce((sum, value) => sum + value, 0) / current.length : 0,
+      previousAverage: previous.length ? previous.reduce((sum, value) => sum + value, 0) / previous.length : 0
+    };
+
+    updateChartView(unitPayload, `${unit.label || 'Unidade'} · ${activeBasePayload.currentYear} x ${activeBasePayload.previousYear}`);
+    renderUnitComparison(activeBasePayload);
+    if (chartResetUnit) chartResetUnit.hidden = false;
+  }
+
+  function resetChartUnit() {
+    if (!activeBasePayload) return;
+    activeUnitCode = '';
+    updateChartView(activeBasePayload);
+    renderUnitComparison(activeBasePayload);
+    if (chartResetUnit) chartResetUnit.hidden = true;
+  }
+
+  function openChart(payload) {
+    if (!chartPanel || !chartBackdrop) return;
+    activeBasePayload = payload;
+    activeUnitCode = '';
     chartBackdrop.hidden = false;
     chartBackdrop.classList.add('is-visible');
     chartPanel.classList.add('is-open');
     chartPanel.setAttribute('aria-hidden', 'false');
+    if (chartResetUnit) chartResetUnit.hidden = true;
+    updateChartView(payload);
     renderUnitComparison(payload);
-    window.requestAnimationFrame(() => drawLineChart(payload));
   }
 
   function closeChart() {
     activeChartPayload = null;
+    activeBasePayload = null;
+    activeUnitCode = '';
     chartPanel?.classList.remove('is-open');
     chartPanel?.setAttribute('aria-hidden', 'true');
     chartBackdrop?.classList.remove('is-visible');
