@@ -51,19 +51,43 @@ class BalanceteTree
         $this->normalizeIndentationFromRawLines($rows);
 
         $nextIndentByIndex = [];
+        $stackByImport = [];
         $count = count($rows);
 
         for ($i = 0; $i < $count; $i++) {
-            $nextIndentByIndex[$i] = $i + 1 < $count ? (int)$rows[$i + 1]['indentation_level'] : -1;
+            $currentImport = (string)($rows[$i]['import_id'] ?? 'single');
+            $nextImport = $i + 1 < $count ? (string)($rows[$i + 1]['import_id'] ?? 'single') : '';
+            $nextIndentByIndex[$i] = $currentImport === $nextImport ? (int)$rows[$i + 1]['indentation_level'] : -1;
         }
 
         foreach ($rows as $i => &$row) {
             $indent = (int)$row['indentation_level'];
+            $importKey = (string)($row['import_id'] ?? 'single');
+            $stackByImport[$importKey] ??= [];
+
+            foreach (array_keys($stackByImport[$importKey]) as $stackLevel) {
+                if ($stackLevel >= $indent) {
+                    unset($stackByImport[$importKey][$stackLevel]);
+                }
+            }
+
+            ksort($stackByImport[$importKey]);
+            $parent = empty($stackByImport[$importKey]) ? null : end($stackByImport[$importKey]);
+
+            $row['parent_account_code'] = $parent['account_code'] ?? '';
+            $row['parent_account_description'] = $parent['account_description'] ?? '';
+            $row['parent_is_analytical'] = $parent['is_analytical'] ?? 0;
             $row['has_children'] = $nextIndentByIndex[$i] > $indent;
             $row['signed_movement'] = $this->signedMovement(
                 (float)$row['movement_value'],
                 (string)($row['movement_type'] ?? '')
             );
+
+            $stackByImport[$importKey][$indent] = [
+                'account_code' => (string)$row['account_code'],
+                'account_description' => (string)$row['account_description'],
+                'is_analytical' => (int)$row['is_analytical'],
+            ];
         }
         unset($row);
 

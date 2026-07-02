@@ -263,6 +263,8 @@ class DreController
 
             if (!isset($matrix[$key])) {
                 $matrix[$key] = [
+                    'row_key' => $key,
+                    'parent_key' => $this->parentRowKey($row),
                     'account_code' => $row['account_code'],
                     'account_description' => $row['account_description'],
                     'indentation_level' => (int)$row['indentation_level'],
@@ -285,6 +287,7 @@ class DreController
                 if ($rowPeriod > $currentPeriod || ($rowPeriod === $currentPeriod && (int)$row['line_number'] < (int)$matrix[$key]['line_number'])) {
                     $matrix[$key]['line_number'] = (int)$row['line_number'];
                     $matrix[$key]['sort_line_number'] = (float)$row['line_number'];
+                    $matrix[$key]['parent_key'] = $this->parentRowKey($row);
                     $matrix[$key]['sort_year'] = (int)$row['year'];
                     $matrix[$key]['sort_month'] = (int)$row['month'];
                 }
@@ -351,6 +354,21 @@ class DreController
         $matrixRows = array_values(array_filter($matrix, static function (array $row): bool {
             return !empty($row['has_children']) || abs((float)$row['acumulado']) >= 0.005;
         }));
+        usort($matrixRows, static function (array $a, array $b): int {
+            return (int)$a['indentation_level'] <=> (int)$b['indentation_level'];
+        });
+
+        $sortLineByKey = [];
+        foreach ($matrixRows as &$row) {
+            $parentKey = (string)($row['parent_key'] ?? '');
+            if ($parentKey !== '' && isset($sortLineByKey[$parentKey])) {
+                $row['sort_line_number'] = $sortLineByKey[$parentKey] + ((float)$row['line_number'] / 1000000);
+            }
+
+            $sortLineByKey[(string)$row['row_key']] = (float)$row['sort_line_number'];
+        }
+        unset($row);
+
         $parentLineByCode = [];
         foreach ($matrixRows as $row) {
             if (!empty($row['is_analytical'])) {
@@ -567,6 +585,22 @@ class DreController
             (int)!empty($row['is_analytical']),
             (string)$row['account_code'],
             $this->normalizeKeyDescription((string)$row['account_description']),
+        ]);
+    }
+
+    private function parentRowKey(array $row): string
+    {
+        $parentCode = (string)($row['parent_account_code'] ?? '');
+        $parentDescription = (string)($row['parent_account_description'] ?? '');
+
+        if ($parentCode === '' && $parentDescription === '') {
+            return '';
+        }
+
+        return implode('|', [
+            (int)!empty($row['parent_is_analytical']),
+            $parentCode,
+            $this->normalizeKeyDescription($parentDescription),
         ]);
     }
 
