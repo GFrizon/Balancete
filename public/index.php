@@ -17,6 +17,14 @@ require_once $appRoot . '/app/helpers.php';
 
 security_headers();
 
+// Limpa opcache de controllers para evitar carregar versoes antigas apos deploy
+if (function_exists('opcache_invalidate')) {
+    foreach (glob($appRoot . '/app/Controllers/*.php') as $file) {
+        @opcache_invalidate($file, true);
+    }
+    @opcache_invalidate(__FILE__, true);
+}
+
 // Carrega controllers
 foreach (glob($appRoot . '/app/Controllers/*.php') as $file) {
     require_once $file;
