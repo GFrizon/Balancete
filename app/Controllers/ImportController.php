@@ -235,6 +235,20 @@ class ImportController
     }
 
     // -------------------------------------------------------
+    // Limpar cache do PHP (opcache)
+    // -------------------------------------------------------
+
+    public function clearCache(): void
+    {
+        auth_check();
+        if (function_exists('opcache_reset')) {
+            opcache_reset();
+        }
+        flash('success', 'Cache limpo com sucesso!');
+        redirect('imports/create');
+    }
+
+    // -------------------------------------------------------
     // Preview da importação
     // -------------------------------------------------------
 

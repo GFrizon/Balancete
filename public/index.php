@@ -54,6 +54,8 @@ $routes = [
 
     ['GET',  'dashboard',                'DashboardController',  'index'],
 
+    ['GET',  'limpar-cache',             'ImportController',     'clearCache'],
+
     ['GET',  'imports',                  'ImportController',     'index'],
     ['GET',  'imports/create',           'ImportController',     'create'],
     ['POST', 'imports/create',           'ImportController',     'store'],
