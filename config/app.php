@@ -4,7 +4,7 @@
  */
 
 define('APP_NAME',    'Balancete DRE');
-define('APP_VERSION', '1.0.0');
+define('APP_VERSION', '1.0.1');
 
 // Chave secreta para tokens CSRF (altere para uma string aleatória longa)
 define('APP_KEY', 'troque-esta-chave-por-uma-string-aleatoria-segura-32chars');
