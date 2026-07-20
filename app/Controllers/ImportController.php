@@ -78,7 +78,22 @@ class ImportController
 
         $pdo = db();
 
-        // Verificar arquivo
+        // Confirmação: processar importação pendente da sessão
+        $confirmToken = trim($_POST['confirm_token'] ?? '');
+        if ($confirmToken !== '') {
+            $pending = $this->loadPendingFromSession($confirmToken);
+            if (!$pending) {
+                flash('error', 'Sessão de confirmação expirada. Faça o upload novamente.');
+                redirect('imports/create');
+            }
+
+            $this->finalizeImport($pdo, $pending);
+            $this->clearPendingFromSession($confirmToken);
+            flash('success', 'Importação substituída com sucesso!');
+            redirect('dre');
+        }
+
+        // Upload inicial
         if (empty($_FILES['balancete']) || $_FILES['balancete']['error'] !== UPLOAD_ERR_OK) {
             $errCode = $_FILES['balancete']['error'] ?? -1;
             $errMsg  = $errCode === UPLOAD_ERR_INI_SIZE || $errCode === UPLOAD_ERR_FORM_SIZE
@@ -105,15 +120,7 @@ class ImportController
 
         $fileHash = hash_file('sha256', $tmpPath);
 
-        // Verificar duplicata
-        $dup = $pdo->prepare('SELECT id FROM imports WHERE file_hash = ? LIMIT 1');
-        $dup->execute([$fileHash]);
-        if ($dup->fetch()) {
-            flash('warning', 'Este arquivo já foi importado anteriormente.');
-            redirect('imports/create');
-        }
-
-        // Mover arquivo
+        // Mover arquivo para área temporária até confirmação
         ensure_dir(UPLOADS_PATH);
         $ext         = strtolower(pathinfo($origName, PATHINFO_EXTENSION));
         $storedName  = date('Ymd_His') . '_' . $fileHash . '.' . $ext;
@@ -147,35 +154,84 @@ class ImportController
             redirect('imports/create');
         }
 
-        // Determinar ano/mês do arquivo (usa o do cabeçalho se detectado, senão pede ao usuário)
         $year  = $header['periodo_ano'] ?: (int)($_POST['year'] ?? date('Y'));
         $month = $header['periodo_mes'] ?: (int)($_POST['month'] ?? date('n'));
 
-        // Limpar importações anteriores do mesmo período/unidade para evitar soma
-        $this->clearExistingPeriodImports($pdo, $companyId, $unitId, $year, $month);
+        // Verificar se já existe importação para o período
+        if ($this->hasExistingPeriodImport($pdo, $companyId, $unitId, $year, $month)) {
+            $token = $this->storePendingInSession([
+                'company_id'  => $companyId,
+                'unit_id'     => $unitId,
+                'year'        => $year,
+                'month'       => $month,
+                'orig_name'   => $origName,
+                'file_hash'   => $fileHash,
+                'stored_path' => $storedPath,
+                'rows'        => $result['rows'],
+                'header'      => $header,
+                'post_company_id' => (int)($_POST['company_id'] ?? 0),
+                'post_unit_id'    => (int)($_POST['unit_id'] ?? 0),
+                'post_year'       => (int)($_POST['year'] ?? 0),
+                'post_month'      => (int)($_POST['month'] ?? 0),
+            ]);
+            redirect('imports/confirm', ['token' => $token]);
+        }
 
-        // Inserir import
-        $stmt = $pdo->prepare(
-            'INSERT INTO imports (company_id, business_unit_id, year, month, original_filename,
-                                  file_hash, status, imported_by, raw_text_path)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
-            $companyId, $unitId, $year, $month, $origName,
-            $fileHash, 'confirmed', current_user_id(), $storedPath,
+        $this->finalizeImport($pdo, [
+            'company_id'  => $companyId,
+            'unit_id'     => $unitId,
+            'year'        => $year,
+            'month'       => $month,
+            'orig_name'   => $origName,
+            'file_hash'   => $fileHash,
+            'stored_path' => $storedPath,
+            'rows'        => $result['rows'],
+            'header'      => $header,
         ]);
-        $importId = (int)$pdo->lastInsertId();
 
-        // Salvar rows no banco
-        $this->saveRows($importId, $result['rows']);
-
-        audit('import_uploaded', 'import', $importId, [
-            'file' => $origName, 'rows' => count($result['rows'])
-        ]);
-
-        audit('import_confirmed', 'import', $importId);
         flash('success', 'Importação concluída com sucesso!');
         redirect('dre');
+    }
+
+    // -------------------------------------------------------
+    // Tela de confirmação de substituição
+    // -------------------------------------------------------
+
+    public function confirmReplace(): void
+    {
+        auth_check();
+
+        $token = trim($_GET['token'] ?? '');
+        if ($token === '') {
+            flash('error', 'Token de confirmação inválido.');
+            redirect('imports/create');
+        }
+
+        $pending = $this->loadPendingFromSession($token);
+        if (!$pending) {
+            flash('error', 'Sessão de confirmação expirada. Faça o upload novamente.');
+            redirect('imports/create');
+        }
+
+        $pdo = db();
+        $companyStmt = $pdo->prepare('SELECT name FROM companies WHERE id = ?');
+        $companyStmt->execute([$pending['company_id']]);
+        $company = $companyStmt->fetch();
+
+        $unitStmt = $pdo->prepare('SELECT code, name FROM business_units WHERE id = ?');
+        $unitStmt->execute([$pending['unit_id']]);
+        $unit = $unitStmt->fetch();
+
+        view('imports/confirm', [
+            'token'        => $token,
+            'companyName'  => $company['name'] ?? 'N/A',
+            'unitCode'     => $unit['code'] ?? 'N/A',
+            'unitName'     => $unit['name'] ?? 'N/A',
+            'year'         => $pending['year'],
+            'month'        => $pending['month'],
+            'origName'     => $pending['orig_name'],
+            'rowsCount'    => count($pending['rows']),
+        ]);
     }
 
     // -------------------------------------------------------
@@ -396,6 +452,70 @@ class ImportController
         // Apaga os imports (trial_balance_rows são removidas por ON DELETE CASCADE)
         $pdo->prepare("DELETE FROM imports WHERE id IN ({$placeholders})")
             ->execute($deleteIds);
+    }
+
+    private function hasExistingPeriodImport(PDO $pdo, int $companyId, int $unitId, int $year, int $month): bool
+    {
+        $stmt = $pdo->prepare(
+            'SELECT id FROM imports
+              WHERE company_id = ? AND business_unit_id = ? AND year = ? AND month = ?
+              LIMIT 1'
+        );
+        $stmt->execute([$companyId, $unitId, $year, $month]);
+        return (bool)$stmt->fetch();
+    }
+
+    private function finalizeImport(PDO $pdo, array $pending): void
+    {
+        $companyId = (int)$pending['company_id'];
+        $unitId    = (int)$pending['unit_id'];
+        $year      = (int)$pending['year'];
+        $month     = (int)$pending['month'];
+        $origName  = (string)$pending['orig_name'];
+        $fileHash  = (string)$pending['file_hash'];
+        $storedPath = (string)$pending['stored_path'];
+        $rows      = (array)$pending['rows'];
+
+        // Limpar importações anteriores do mesmo período/unidade para evitar soma
+        $this->clearExistingPeriodImports($pdo, $companyId, $unitId, $year, $month);
+
+        // Inserir import
+        $stmt = $pdo->prepare(
+            'INSERT INTO imports (company_id, business_unit_id, year, month, original_filename,
+                                  file_hash, status, imported_by, raw_text_path)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $companyId, $unitId, $year, $month, $origName,
+            $fileHash, 'confirmed', current_user_id(), $storedPath,
+        ]);
+        $importId = (int)$pdo->lastInsertId();
+
+        // Salvar rows no banco
+        $this->saveRows($importId, $rows);
+
+        audit('import_uploaded', 'import', $importId, [
+            'file' => $origName, 'rows' => count($rows)
+        ]);
+
+        audit('import_confirmed', 'import', $importId);
+    }
+
+    private function storePendingInSession(array $data): string
+    {
+        $token = bin2hex(random_bytes(16));
+        $_SESSION['import_confirm'][$token] = $data;
+        return $token;
+    }
+
+    private function loadPendingFromSession(string $token): ?array
+    {
+        return $_SESSION['import_confirm'][$token] ?? null;
+    }
+
+    private function clearPendingFromSession(string $token): void
+    {
+        unset($_SESSION['import_confirm'][$token]);
     }
 
     private function saveRows(int $importId, array $rows): void

@@ -57,6 +57,7 @@ $routes = [
     ['GET',  'imports',                  'ImportController',     'index'],
     ['GET',  'imports/create',           'ImportController',     'create'],
     ['POST', 'imports/create',           'ImportController',     'store'],
+    ['GET',  'imports/confirm',          'ImportController',     'confirmReplace'],
     ['GET',  'imports/(\d+)/preview',    'ImportController',     'preview'],
     ['POST', 'imports/(\d+)/confirm',    'ImportController',     'confirm'],
     ['POST', 'imports/(\d+)/delete',     'ImportController',     'destroy'],
