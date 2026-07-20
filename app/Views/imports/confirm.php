@@ -23,6 +23,20 @@
   <div class="card shadow-sm">
     <div class="card-body p-4">
       <div class="mb-4">
+        <?php if (!empty($existingImport)): ?>
+        <div class="alert alert-light border d-flex align-items-start gap-2 mb-4">
+          <i class="bi bi-file-earmark-excel text-warning flex-shrink-0 mt-1"></i>
+          <div>
+            <div class="fw-semibold">Importacao existente que sera removida</div>
+            <div class="small text-muted">
+              #<?= (int)$existingImport['id'] ?> -
+              <?= e($existingImport['original_filename']) ?> -
+              <?= month_short((int)$existingImport['month']) ?>/<?= (int)$existingImport['year'] ?> -
+              <?= date('d/m/Y H:i', strtotime($existingImport['imported_at'])) ?>
+            </div>
+          </div>
+        </div>
+        <?php endif; ?>
         <h5 class="fw-semibold mb-3">Importação atual</h5>
         <div class="row g-3">
           <div class="col-md-6">

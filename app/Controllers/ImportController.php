@@ -158,7 +158,8 @@ class ImportController
         $month = $header['periodo_mes'] ?: (int)($_POST['month'] ?? date('n'));
 
         // Verificar se já existe importação para o período
-        if ($this->hasExistingPeriodImport($pdo, $companyId, $unitId, $year, $month)) {
+        $existingImport = $this->findReplaceableExistingImport($pdo, $companyId, $unitId, $year, $month, $fileHash);
+        if ($existingImport) {
             $token = $this->storePendingInSession([
                 'company_id'  => $companyId,
                 'unit_id'     => $unitId,
@@ -173,6 +174,7 @@ class ImportController
                 'post_unit_id'    => (int)($_POST['unit_id'] ?? 0),
                 'post_year'       => (int)($_POST['year'] ?? 0),
                 'post_month'      => (int)($_POST['month'] ?? 0),
+                'existing_import' => $existingImport,
             ]);
             redirect('imports/confirm', ['token' => $token]);
         }
@@ -231,6 +233,7 @@ class ImportController
             'month'        => $pending['month'],
             'origName'     => $pending['orig_name'],
             'rowsCount'    => count($pending['rows']),
+            'existingImport' => $pending['existing_import'] ?? null,
         ]);
     }
 
@@ -439,13 +442,16 @@ class ImportController
         return ['', ''];
     }
 
-    private function clearExistingPeriodImports(PDO $pdo, int $companyId, int $unitId, int $year, int $month): void
+    private function clearExistingReplaceableImports(PDO $pdo, int $companyId, int $unitId, int $year, int $month, string $fileHash): void
     {
         $stmt = $pdo->prepare(
             'SELECT id, raw_text_path FROM imports
-              WHERE company_id = ? AND business_unit_id = ? AND year = ? AND month = ?'
+              WHERE (
+                    company_id = ? AND business_unit_id = ? AND year = ? AND month = ?
+                )
+                 OR file_hash = ?'
         );
-        $stmt->execute([$companyId, $unitId, $year, $month]);
+        $stmt->execute([$companyId, $unitId, $year, $month, $fileHash]);
         $existing = $stmt->fetchAll();
 
         if (empty($existing)) {
@@ -468,15 +474,22 @@ class ImportController
             ->execute($deleteIds);
     }
 
-    private function hasExistingPeriodImport(PDO $pdo, int $companyId, int $unitId, int $year, int $month): bool
+    private function findReplaceableExistingImport(PDO $pdo, int $companyId, int $unitId, int $year, int $month, string $fileHash): array|false
     {
         $stmt = $pdo->prepare(
-            'SELECT id FROM imports
-              WHERE company_id = ? AND business_unit_id = ? AND year = ? AND month = ?
+            'SELECT id, year, month, original_filename, file_hash, imported_at
+               FROM imports
+              WHERE (
+                    company_id = ? AND business_unit_id = ? AND year = ? AND month = ?
+                )
+                 OR file_hash = ?
+              ORDER BY
+                CASE WHEN file_hash = ? THEN 0 ELSE 1 END,
+                imported_at DESC
               LIMIT 1'
         );
-        $stmt->execute([$companyId, $unitId, $year, $month]);
-        return (bool)$stmt->fetch();
+        $stmt->execute([$companyId, $unitId, $year, $month, $fileHash, $fileHash]);
+        return $stmt->fetch();
     }
 
     private function finalizeImport(PDO $pdo, array $pending): void
@@ -491,22 +504,36 @@ class ImportController
         $rows      = (array)$pending['rows'];
 
         // Limpar importações anteriores do mesmo período/unidade para evitar soma
-        $this->clearExistingPeriodImports($pdo, $companyId, $unitId, $year, $month);
+        $startedTransaction = !$pdo->inTransaction();
+        if ($startedTransaction) {
+            $pdo->beginTransaction();
+        }
+        try {
+            $this->clearExistingReplaceableImports($pdo, $companyId, $unitId, $year, $month, $fileHash);
 
-        // Inserir import
-        $stmt = $pdo->prepare(
-            'INSERT INTO imports (company_id, business_unit_id, year, month, original_filename,
-                                  file_hash, status, imported_by, raw_text_path)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        $stmt->execute([
-            $companyId, $unitId, $year, $month, $origName,
-            $fileHash, 'confirmed', current_user_id(), $storedPath,
-        ]);
-        $importId = (int)$pdo->lastInsertId();
+            // Inserir import
+            $stmt = $pdo->prepare(
+                'INSERT INTO imports (company_id, business_unit_id, year, month, original_filename,
+                                      file_hash, status, imported_by, raw_text_path)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            );
+            $stmt->execute([
+                $companyId, $unitId, $year, $month, $origName,
+                $fileHash, 'confirmed', current_user_id(), $storedPath,
+            ]);
+            $importId = (int)$pdo->lastInsertId();
 
-        // Salvar rows no banco
-        $this->saveRows($importId, $rows);
+            // Salvar rows no banco
+            $this->saveRows($importId, $rows);
+            if ($startedTransaction) {
+                $pdo->commit();
+            }
+        } catch (Throwable $e) {
+            if ($startedTransaction) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
 
         audit('import_uploaded', 'import', $importId, [
             'file' => $origName, 'rows' => count($rows)
@@ -542,7 +569,10 @@ class ImportController
              VALUES (?,?,?,?,?,?,?,?,?,?,?)'
         );
 
-        $pdo->beginTransaction();
+        $startedTransaction = !$pdo->inTransaction();
+        if ($startedTransaction) {
+            $pdo->beginTransaction();
+        }
         try {
             foreach ($rows as $row) {
                 $stmt->execute([
@@ -559,9 +589,13 @@ class ImportController
                     $row['raw_line'],
                 ]);
             }
-            $pdo->commit();
+            if ($startedTransaction) {
+                $pdo->commit();
+            }
         } catch (Throwable $e) {
-            $pdo->rollBack();
+            if ($startedTransaction) {
+                $pdo->rollBack();
+            }
             throw $e;
         }
     }
