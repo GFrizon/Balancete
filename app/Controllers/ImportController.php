@@ -151,6 +151,9 @@ class ImportController
         $year  = $header['periodo_ano'] ?: (int)($_POST['year'] ?? date('Y'));
         $month = $header['periodo_mes'] ?: (int)($_POST['month'] ?? date('n'));
 
+        // Limpar importações anteriores do mesmo período/unidade para evitar soma
+        $this->clearExistingPeriodImports($pdo, $companyId, $unitId, $year, $month);
+
         // Inserir import
         $stmt = $pdo->prepare(
             'INSERT INTO imports (company_id, business_unit_id, year, month, original_filename,
@@ -364,6 +367,35 @@ class ImportController
         }
 
         return ['', ''];
+    }
+
+    private function clearExistingPeriodImports(PDO $pdo, int $companyId, int $unitId, int $year, int $month): void
+    {
+        $stmt = $pdo->prepare(
+            'SELECT id, raw_text_path FROM imports
+              WHERE company_id = ? AND business_unit_id = ? AND year = ? AND month = ?'
+        );
+        $stmt->execute([$companyId, $unitId, $year, $month]);
+        $existing = $stmt->fetchAll();
+
+        if (empty($existing)) {
+            return;
+        }
+
+        $deleteIds = array_map(static fn (array $row): int => (int)$row['id'], $existing);
+        $placeholders = implode(',', array_fill(0, count($deleteIds), '?'));
+
+        // Remove arquivos físicos
+        foreach ($existing as $row) {
+            $path = (string)($row['raw_text_path'] ?? '');
+            if ($path !== '' && file_exists($path)) {
+                @unlink($path);
+            }
+        }
+
+        // Apaga os imports (trial_balance_rows são removidas por ON DELETE CASCADE)
+        $pdo->prepare("DELETE FROM imports WHERE id IN ({$placeholders})")
+            ->execute($deleteIds);
     }
 
     private function saveRows(int $importId, array $rows): void
