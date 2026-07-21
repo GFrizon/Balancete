@@ -1640,8 +1640,8 @@ body {
 }
 
 
-/* Separadores verticais discretos (estilo do print) */
+/* Separadores verticais discretos (tom cinza) */
 .dre-report-table thead th:not(.dre-sticky):not(:last-child),
 .dre-report-table tbody td:not(.dre-sticky):not(:last-child) {
-  border-right: 1px solid rgba(220, 38, 38, .18);
+  border-right: 1px solid rgba(0, 0, 0, .18);
 }
