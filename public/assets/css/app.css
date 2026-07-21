@@ -1639,8 +1639,9 @@ body {
   }
 }
 
-/* Elegant vertical separators between non-sticky columns */
+
+/* Separadores verticais discretos (estilo do print) */
 .dre-report-table thead th:not(.dre-sticky):not(:last-child),
 .dre-report-table tbody td:not(.dre-sticky):not(:last-child) {
-  border-right: 1px solid #e2e8f0;
+  border-right: 1px solid rgba(220, 38, 38, .18);
 }
