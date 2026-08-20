@@ -367,6 +367,15 @@ class SimulationController
             }
         }
 
+        foreach ($rows as &$row) {
+            $visibleMonthCount = max(1, count($row['values'] ?? []));
+            $simulatedAcumulado = (float)($row['simulated_acumulado'] ?? $row['acumulado'] ?? 0.0);
+            $baseMedia = (float)($row['media'] ?? 0.0);
+            $row['simulated_media'] = $simulatedAcumulado / $visibleMonthCount;
+            $row['simulated_media_delta'] = (float)$row['simulated_media'] - $baseMedia;
+        }
+        unset($row);
+
         return $rows;
     }
 

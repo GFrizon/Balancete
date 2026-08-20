@@ -740,6 +740,82 @@ body {
   background: #fff2b8 !important;
 }
 
+.simulation-summary-pill {
+  display: grid;
+  gap: .1rem;
+  min-width: 130px;
+  padding: .35rem .55rem;
+  border: 1px solid #dbe4ee;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.simulation-summary-pill span {
+  color: #64748b;
+  font-size: .68rem;
+  line-height: 1;
+}
+
+.simulation-summary-pill strong {
+  font-size: .86rem;
+  line-height: 1.1;
+}
+
+.simulation-dre-row {
+  cursor: pointer;
+}
+
+.simulation-dre-row.is-changed td,
+.simulation-dre-row.is-changed .dre-sticky {
+  background: #fff7d6 !important;
+}
+
+.simulation-edit-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #64748b;
+  opacity: 0;
+  flex: 0 0 22px;
+}
+
+.simulation-dre-row:hover .simulation-edit-btn,
+.simulation-edit-btn:focus {
+  opacity: 1;
+}
+
+.simulation-edit-btn:hover,
+.simulation-edit-btn:focus {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.simulation-row-tags {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  margin-left: auto;
+  color: #2563eb;
+  font-size: .66rem;
+  font-weight: 700;
+}
+
+.simulation-row-tags [data-display="classification"]:empty,
+.simulation-row-tags [data-display="classification"] {
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.simulation-impact {
+  color: #2563eb;
+}
+
 /* ---- Table geral ---- */
 .table > tbody > tr > td,
 .table > thead > tr > th {
@@ -1852,4 +1928,14 @@ body {
 .dre-report-table thead th:not(.dre-sticky):not(:last-child),
 .dre-report-table tbody td:not(.dre-sticky):not(:last-child) {
   border-right: 1px solid rgba(0, 0, 0, .18);
+}
+
+.simulation-dre-table .simulation-dre-row.is-changed td,
+.simulation-dre-table .simulation-dre-row.is-changed .dre-sticky {
+  background: #fff7d6 !important;
+}
+
+.simulation-dre-table .simulation-dre-row.is-changed:hover td,
+.simulation-dre-table .simulation-dre-row.is-changed:hover .dre-sticky {
+  background: #fff2b8 !important;
 }
