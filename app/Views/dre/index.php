@@ -225,8 +225,8 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             <th class="text-end dre-money-col dre-month-col"><?= e($month['label']) ?></th>
             <?php endforeach; ?>
             <th class="text-end dre-money-col">Acumulado</th>
-            <th class="text-end dre-money-col">Media</th>
             <th class="text-end dre-money-col">Acumulado <?= (int)$previousYear ?></th>
+            <th class="text-end dre-money-col">Media</th>
             <th class="text-end dre-money-col">Media <?= (int)$previousYear ?></th>
           </tr>
         </thead>
@@ -303,16 +303,16 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
               <div class="dre-percent"><?= number_format($acumuladoPercentual, 1, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
-            <td class="text-end dre-money dre-tooltip-cell <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>" tabindex="0"<?= $comparisonTooltipAttrs('Media', $media, $previousYearMedia, (int)$previousYear) ?>>
-              <div><?= $formatSigned($media) ?><?= $trendIndicator($media, $previousYearMedia) ?></div>
-              <?php if (abs($mediaPercentual) >= 0.01): ?>
-              <div class="dre-percent"><?= number_format($mediaPercentual, 1, ',', '.') ?>%</div>
-              <?php endif; ?>
-            </td>
             <td class="text-end dre-money <?= $previousYearAcumulado < 0 ? 'is-negative' : ($previousYearAcumulado > 0 ? 'is-positive' : '') ?>">
               <div><?= $formatSigned($previousYearAcumulado) ?></div>
               <?php if (abs($previousYearAcumuladoPercentual) >= 0.01): ?>
               <div class="dre-percent"><?= number_format($previousYearAcumuladoPercentual, 1, ',', '.') ?>%</div>
+              <?php endif; ?>
+            </td>
+            <td class="text-end dre-money dre-tooltip-cell <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>" tabindex="0"<?= $comparisonTooltipAttrs('Media', $media, $previousYearMedia, (int)$previousYear) ?>>
+              <div><?= $formatSigned($media) ?><?= $trendIndicator($media, $previousYearMedia) ?></div>
+              <?php if (abs($mediaPercentual) >= 0.01): ?>
+              <div class="dre-percent"><?= number_format($mediaPercentual, 1, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
             <td class="text-end dre-money <?= $previousYearMedia < 0 ? 'is-negative' : ($previousYearMedia > 0 ? 'is-positive' : '') ?>">
