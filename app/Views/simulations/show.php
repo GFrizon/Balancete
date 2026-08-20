@@ -261,7 +261,7 @@ $percentInput = static function (?array $adjustment): string {
           </div>
           <div class="col-6">
             <label class="form-label fw-semibold">Valor simulado</label>
-            <input type="text" class="form-control text-end" id="simulationEditFinal" placeholder="Ex: 0,00">
+            <input type="text" class="form-control text-end" id="simulationEditFinal" inputmode="decimal" placeholder="Ex: 0,00">
           </div>
           <div class="col-12">
             <div class="btn-group btn-group-sm" role="group" aria-label="Ajustes rapidos">
@@ -349,6 +349,26 @@ $percentInput = static function (?array $adjustment): string {
     return Number.isFinite(number) ? number.toFixed(2) : '';
   }
 
+  function parseMoney(value) {
+    const normalized = normalizeMoney(value);
+    return normalized === '' ? null : Number(normalized);
+  }
+
+  function formatMoney(number) {
+    if (!Number.isFinite(number)) return '';
+    return number.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  }
+
+  function normalizeMoneyInput(input) {
+    const parsed = parseMoney(input.value);
+    if (parsed !== null) {
+      input.value = formatMoney(parsed);
+    }
+  }
+
   function updateScrollState() {
     if (!scrollWrap) return;
     scrollWrap.classList.toggle('is-scrolled-x', scrollWrap.scrollLeft > 1);
@@ -383,10 +403,15 @@ $percentInput = static function (?array $adjustment): string {
     classification.value = field(row, 'classification')?.value || 'none';
     note.value = field(row, 'note')?.value || '';
     modal.show();
+    setTimeout(() => {
+      finalValue.focus();
+      finalValue.select();
+    }, 160);
   }
 
   function applyEditor() {
     if (!activeRow) return;
+    normalizeMoneyInput(finalValue);
     const finalValueText = finalValue.value.trim();
     const noteValue = note.value.trim();
     const hasValueChange = normalizeMoney(finalValueText) !== normalizeMoney(activeRow.dataset.real || '');
@@ -451,9 +476,18 @@ $percentInput = static function (?array $adjustment): string {
 
   useReal.addEventListener('click', () => {
     finalValue.value = real.value;
+    finalValue.focus();
   });
   zeroValue.addEventListener('click', () => {
     finalValue.value = '0,00';
+    finalValue.focus();
+  });
+  finalValue.addEventListener('blur', () => normalizeMoneyInput(finalValue));
+  finalValue.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      applyEditor();
+    }
   });
   apply.addEventListener('click', applyEditor);
   clear.addEventListener('click', clearEditor);
