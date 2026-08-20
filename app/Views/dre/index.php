@@ -326,6 +326,9 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
         </tbody>
       </table>
     </div>
+    <div class="dre-column-scrollbar" aria-label="Rolar colunas financeiras" tabindex="0">
+      <div class="dre-column-scrollbar-spacer"></div>
+    </div>
   </div>
 
   <div class="dre-chart-backdrop" id="dreChartBackdrop" hidden></div>
@@ -398,9 +401,12 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   const marked = new Set();
   const rowById = new Map(rows.map(row => [row.dataset.rowId, row]));
   const scrollWrap = table.closest('.dre-report-scroll');
+  const columnScrollbar = document.querySelector('.dre-column-scrollbar');
+  const columnScrollbarSpacer = columnScrollbar?.querySelector('.dre-column-scrollbar-spacer');
   const tooltip = document.createElement('div');
   let tooltipTimer = 0;
   let activeTooltipCell = null;
+  let syncingColumnScroll = false;
   const chartPanel = document.getElementById('dreChartPanel');
   const chartBackdrop = document.getElementById('dreChartBackdrop');
   const chartCanvas = document.getElementById('dreLineChart');
@@ -422,11 +428,52 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
     scrollWrap.classList.toggle('is-scrolled-y', scrollWrap.scrollTop > 1);
   }
 
-  scrollWrap?.addEventListener('scroll', updateScrollState, { passive: true });
-  window.addEventListener('resize', updateScrollState);
-  if (window.ResizeObserver && scrollWrap) {
-    new ResizeObserver(updateScrollState).observe(scrollWrap);
+  function updateColumnScrollbar() {
+    if (!scrollWrap || !columnScrollbar || !columnScrollbarSpacer) return;
+
+    const fixedWidth = parseFloat(getComputedStyle(columnScrollbar).marginLeft) || 0;
+    columnScrollbarSpacer.style.width = `${Math.max(1, table.scrollWidth - fixedWidth)}px`;
+    columnScrollbar.classList.toggle('is-hidden', table.scrollWidth <= scrollWrap.clientWidth + 1);
+
+    if (!syncingColumnScroll) {
+      syncingColumnScroll = true;
+      columnScrollbar.scrollLeft = scrollWrap.scrollLeft;
+      syncingColumnScroll = false;
+    }
   }
+
+  scrollWrap?.addEventListener('scroll', () => {
+    updateScrollState();
+    if (!columnScrollbar || syncingColumnScroll) return;
+    syncingColumnScroll = true;
+    columnScrollbar.scrollLeft = scrollWrap.scrollLeft;
+    syncingColumnScroll = false;
+  }, { passive: true });
+  scrollWrap?.addEventListener('wheel', event => {
+    if (!scrollWrap || Math.abs(event.deltaX) <= Math.abs(event.deltaY)) return;
+    scrollWrap.scrollLeft += event.deltaX;
+    event.preventDefault();
+  }, { passive: false });
+  columnScrollbar?.addEventListener('scroll', () => {
+    if (!scrollWrap || syncingColumnScroll) return;
+    syncingColumnScroll = true;
+    scrollWrap.scrollLeft = columnScrollbar.scrollLeft;
+    syncingColumnScroll = false;
+    updateScrollState();
+  }, { passive: true });
+  window.addEventListener('resize', () => {
+    updateScrollState();
+    updateColumnScrollbar();
+  });
+  if (window.ResizeObserver && scrollWrap) {
+    const resizeObserver = new ResizeObserver(() => {
+      updateScrollState();
+      updateColumnScrollbar();
+    });
+    resizeObserver.observe(scrollWrap);
+    resizeObserver.observe(table);
+  }
+  updateColumnScrollbar();
 
   function ancestorsOf(row) {
     const ancestors = [];
