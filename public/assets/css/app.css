@@ -649,7 +649,23 @@ body {
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  background: #fff;
+  background-color: #f8fafc;
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      transparent 0,
+      transparent 115px,
+      rgba(0, 0, 0, .10) 115px,
+      rgba(0, 0, 0, .10) 116px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      #f8fafc 0,
+      #f8fafc 41px,
+      #edf2f7 41px,
+      #edf2f7 42px
+    );
+  background-position: var(--dre-sticky-width) 0, 0 0;
   position: relative;
 }
 
@@ -672,7 +688,7 @@ body {
   margin-left: var(--dre-sticky-width);
   overflow-x: auto;
   overflow-y: hidden;
-  background: #fff;
+  background: #f8fafc;
   border-top: 1px solid #e2e8f0;
 }
 
