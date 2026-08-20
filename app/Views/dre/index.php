@@ -325,6 +325,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
           <?php endforeach; ?>
         </tbody>
       </table>
+      <div class="dre-report-scroll-spacer"></div>
     </div>
     <div class="dre-column-scrollbar" aria-label="Rolar colunas financeiras" tabindex="0">
       <div class="dre-column-scrollbar-spacer"></div>
@@ -401,6 +402,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   const marked = new Set();
   const rowById = new Map(rows.map(row => [row.dataset.rowId, row]));
   const scrollWrap = table.closest('.dre-report-scroll');
+  const scrollSpacer = scrollWrap?.querySelector('.dre-report-scroll-spacer');
   const columnScrollbar = document.querySelector('.dre-column-scrollbar');
   const columnScrollbarSpacer = columnScrollbar?.querySelector('.dre-column-scrollbar-spacer');
   const tooltip = document.createElement('div');
@@ -429,11 +431,17 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
   }
 
   function updateColumnScrollbar() {
-    if (!scrollWrap || !columnScrollbar || !columnScrollbarSpacer) return;
+    if (!scrollWrap || !scrollSpacer || !columnScrollbar || !columnScrollbarSpacer) return;
 
     const fixedWidth = parseFloat(getComputedStyle(columnScrollbar).marginLeft) || 0;
-    columnScrollbarSpacer.style.width = `${Math.max(1, table.scrollWidth - fixedWidth)}px`;
-    columnScrollbar.classList.toggle('is-hidden', table.scrollWidth <= scrollWrap.clientWidth + 1);
+    const firstMoneyColumn = table.querySelector('thead th:not(.dre-sticky)');
+    const columnWidth = firstMoneyColumn?.getBoundingClientRect().width || 116;
+    const financialWidth = Math.max(0, table.scrollWidth - fixedWidth);
+    const alignRange = Math.max(0, financialWidth - columnWidth);
+
+    scrollSpacer.style.width = `${scrollWrap.clientWidth + alignRange}px`;
+    columnScrollbarSpacer.style.width = `${columnScrollbar.clientWidth + alignRange}px`;
+    columnScrollbar.classList.toggle('is-hidden', alignRange <= 1);
 
     if (!syncingColumnScroll) {
       syncingColumnScroll = true;

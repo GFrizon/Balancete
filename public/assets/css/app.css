@@ -662,6 +662,11 @@ body {
   table-layout: auto;
 }
 
+.dre-report-scroll-spacer {
+  height: 1px;
+  pointer-events: none;
+}
+
 .dre-column-scrollbar {
   flex: 0 0 18px;
   margin-left: var(--dre-sticky-width);
