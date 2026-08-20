@@ -179,7 +179,7 @@ class ExcelExporter
         $text = $this->formatSigned($value) . $trend;
 
         if (abs($percent) >= 0.01) {
-            $text .= "\n" . number_format($percent, 1, ',', '.') . '%';
+            $text .= "\n" . number_format($percent, 2, ',', '.') . '%';
         }
 
         return $this->cell($text, $this->moneyStyle($value, $kind));

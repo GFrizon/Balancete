@@ -38,7 +38,7 @@ $comparisonTooltipAttrs = static function (string $label, float $current, float 
         . ' data-tooltip-previous="' . e(format_brl($previous)) . '"'
         . ' data-tooltip-previous-label="' . e((string)$previousYear) . '"'
         . ' data-tooltip-diff="' . e(format_brl($diff)) . '"'
-        . ' data-tooltip-percent="' . e($percent === null ? '-' : number_format($percent, 1, ',', '.') . '%') . '"';
+        . ' data-tooltip-percent="' . e($percent === null ? '-' : number_format($percent, 2, ',', '.') . '%') . '"';
 };
 
 $chartPayload = static function (array $row, array $months, int $currentYear, int $previousYear): string {
@@ -293,32 +293,32 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
             <td class="text-end dre-money dre-month-col <?= $monthValue < 0 ? 'is-negative' : ($monthValue > 0 ? 'is-positive' : '') ?>">
               <div><?= $formatSigned($monthValue) ?></div>
               <?php if (abs($percentual) >= 0.01): ?>
-              <div class="dre-percent"><?= number_format($percentual, 1, ',', '.') ?>%</div>
+              <div class="dre-percent"><?= number_format($percentual, 2, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
             <?php endforeach; ?>
             <td class="text-end dre-money dre-tooltip-cell <?= $acumulado < 0 ? 'is-negative' : ($acumulado > 0 ? 'is-positive' : '') ?>" tabindex="0"<?= $comparisonTooltipAttrs('Acumulado', $acumulado, $previousYearAcumulado, (int)$previousYear) ?>>
               <div><?= $formatSigned($acumulado) ?><?= $trendIndicator($acumulado, $previousYearAcumulado) ?></div>
               <?php if (abs($acumuladoPercentual) >= 0.01): ?>
-              <div class="dre-percent"><?= number_format($acumuladoPercentual, 1, ',', '.') ?>%</div>
+              <div class="dre-percent"><?= number_format($acumuladoPercentual, 2, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
             <td class="text-end dre-money <?= $previousYearAcumulado < 0 ? 'is-negative' : ($previousYearAcumulado > 0 ? 'is-positive' : '') ?>">
               <div><?= $formatSigned($previousYearAcumulado) ?></div>
               <?php if (abs($previousYearAcumuladoPercentual) >= 0.01): ?>
-              <div class="dre-percent"><?= number_format($previousYearAcumuladoPercentual, 1, ',', '.') ?>%</div>
+              <div class="dre-percent"><?= number_format($previousYearAcumuladoPercentual, 2, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
             <td class="text-end dre-money dre-tooltip-cell <?= $media < 0 ? 'is-negative' : ($media > 0 ? 'is-positive' : '') ?>" tabindex="0"<?= $comparisonTooltipAttrs('Media', $media, $previousYearMedia, (int)$previousYear) ?>>
               <div><?= $formatSigned($media) ?><?= $trendIndicator($media, $previousYearMedia) ?></div>
               <?php if (abs($mediaPercentual) >= 0.01): ?>
-              <div class="dre-percent"><?= number_format($mediaPercentual, 1, ',', '.') ?>%</div>
+              <div class="dre-percent"><?= number_format($mediaPercentual, 2, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
             <td class="text-end dre-money <?= $previousYearMedia < 0 ? 'is-negative' : ($previousYearMedia > 0 ? 'is-positive' : '') ?>">
               <div><?= $formatSigned($previousYearMedia) ?></div>
               <?php if (abs($previousYearMediaPercentual) >= 0.01): ?>
-              <div class="dre-percent"><?= number_format($previousYearMediaPercentual, 1, ',', '.') ?>%</div>
+              <div class="dre-percent"><?= number_format($previousYearMediaPercentual, 2, ',', '.') ?>%</div>
               <?php endif; ?>
             </td>
           </tr>
