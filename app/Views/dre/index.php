@@ -137,7 +137,7 @@ $singleMonth = $fMonthStart === $fMonthEnd && count($months) === 1;
         <div class="col-sm-6 col-md-1">
           <a href="<?= url('dre/export', ['company_id'=>$fCompany,'group_id'=>$fGroup,'unit_id'=>$fUnit,'year'=>$fYear,'month_start'=>$fMonthStart,'month_end'=>$fMonthEnd]) ?>"
              class="btn btn-outline-success btn-sm w-100">
-            <i class="bi bi-download me-1"></i>CSV
+            <i class="bi bi-file-earmark-excel me-1"></i>Excel
           </a>
         </div>
       </form>

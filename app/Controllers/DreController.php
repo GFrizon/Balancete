@@ -38,20 +38,11 @@ class DreController
             }
         }
 
-        $importIds = $this->resolveImportIds($fCompany, $fUnit, $fGroup, $fYear, $fMonthStart, $fMonthEnd);
-        $imports = $this->getImportMeta($importIds);
-        $treeRows = (new BalanceteTree())->rowsForImports($importIds);
-        $months = $this->selectedMonths($fYear, $fMonthStart, $fMonthEnd);
-        $previousYear = $fYear - 1;
-        $previousImportIds = $this->resolveImportIds($fCompany, $fUnit, $fGroup, $previousYear, $fMonthStart, $fMonthEnd);
-        $previousTreeRows = (new BalanceteTree())->rowsForImports($previousImportIds);
-        $previousMonths = $this->selectedMonths($previousYear, $fMonthStart, $fMonthEnd);
-        $previousMatrixRows = $this->buildMatrix($previousTreeRows, $previousMonths, $fUnit === 0);
-        $matrixRows = $this->buildMatrix($treeRows, $months, $fUnit === 0);
-        $this->attachPreviousYearTotals($matrixRows, $previousMatrixRows);
-        $unitComparisons = $this->buildUnitComparisons($treeRows, $months, $fUnit === 0);
-        $previousUnitComparisons = $this->buildUnitComparisons($previousTreeRows, $previousMonths, $fUnit === 0);
-        $this->attachUnitComparisons($matrixRows, $unitComparisons, $previousUnitComparisons);
+        $reportData = $this->buildReportData($fCompany, $fUnit, $fGroup, $fYear, $fMonthStart, $fMonthEnd);
+        $imports = $reportData['imports'];
+        $months = $reportData['months'];
+        $previousYear = $reportData['previousYear'];
+        $matrixRows = $reportData['matrixRows'];
 
         view('dre/index', compact(
             'companyOptions', 'units', 'yearsAvailable',
@@ -98,7 +89,52 @@ class DreController
             'month_end'   => (int)($_GET['month_end'] ?? 0),
         ];
 
-        (new CsvExporter())->exportToBrowser($filters);
+        $reportData = $this->buildReportData(
+            $filters['company_id'],
+            $filters['unit_id'],
+            $filters['group_id'],
+            $filters['year'],
+            $filters['month_start'],
+            $filters['month_end']
+        );
+
+        (new ExcelExporter())->exportDreToBrowser($reportData);
+    }
+
+    private function buildReportData(int $companyId, int $unitId, int $groupId, int $year, int $monthStart, int $monthEnd): array
+    {
+        $year = $year ?: (int)date('Y');
+
+        if (!$monthStart || !$monthEnd) {
+            [$defaultStart, $defaultEnd] = $this->detectMonthRange($year, $companyId, $unitId, $groupId);
+            $monthStart = $monthStart ?: $defaultStart;
+            $monthEnd = $monthEnd ?: $defaultEnd;
+        }
+
+        $importIds = $this->resolveImportIds($companyId, $unitId, $groupId, $year, $monthStart, $monthEnd);
+        $imports = $this->getImportMeta($importIds);
+        $treeRows = (new BalanceteTree())->rowsForImports($importIds);
+        $months = $this->selectedMonths($year, $monthStart, $monthEnd);
+        $previousYear = $year - 1;
+        $previousImportIds = $this->resolveImportIds($companyId, $unitId, $groupId, $previousYear, $monthStart, $monthEnd);
+        $previousTreeRows = (new BalanceteTree())->rowsForImports($previousImportIds);
+        $previousMonths = $this->selectedMonths($previousYear, $monthStart, $monthEnd);
+        $previousMatrixRows = $this->buildMatrix($previousTreeRows, $previousMonths, $unitId === 0);
+        $matrixRows = $this->buildMatrix($treeRows, $months, $unitId === 0);
+        $this->attachPreviousYearTotals($matrixRows, $previousMatrixRows);
+        $unitComparisons = $this->buildUnitComparisons($treeRows, $months, $unitId === 0);
+        $previousUnitComparisons = $this->buildUnitComparisons($previousTreeRows, $previousMonths, $unitId === 0);
+        $this->attachUnitComparisons($matrixRows, $unitComparisons, $previousUnitComparisons);
+
+        return [
+            'year' => $year,
+            'previousYear' => $previousYear,
+            'monthStart' => $monthStart,
+            'monthEnd' => $monthEnd,
+            'months' => $months,
+            'imports' => $imports,
+            'matrixRows' => $matrixRows,
+        ];
     }
 
     private function resolveImportIds(int $companyId, int $unitId, int $groupId, int $year, int $monthStart, int $monthEnd): array
