@@ -607,7 +607,7 @@ body {
 }
 
 .simulation-table {
-  min-width: 1380px;
+  min-width: 1040px;
   font-size: .78rem;
 }
 
@@ -666,19 +666,22 @@ body {
   min-width: 116px;
 }
 
-.simulation-mode-col {
-  width: 104px;
-  min-width: 104px;
-}
-
 .simulation-type-col {
   width: 126px;
   min-width: 126px;
 }
 
 .simulation-note-col {
-  width: 230px;
-  min-width: 230px;
+  width: 260px;
+  min-width: 260px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.simulation-action-col {
+  width: 56px;
+  min-width: 56px;
 }
 
 .simulation-label {
@@ -719,6 +722,22 @@ body {
 .simulation-row.is-changed .simulation-code-col,
 .simulation-row.is-changed .simulation-desc-col {
   background: #fff7d6 !important;
+}
+
+.simulation-row {
+  cursor: pointer;
+}
+
+.simulation-row:hover td,
+.simulation-row:hover .simulation-code-col,
+.simulation-row:hover .simulation-desc-col {
+  background: #f8fbff !important;
+}
+
+.simulation-row.is-changed:hover td,
+.simulation-row.is-changed:hover .simulation-code-col,
+.simulation-row.is-changed:hover .simulation-desc-col {
+  background: #fff2b8 !important;
 }
 
 /* ---- Table geral ---- */
