@@ -160,6 +160,8 @@ $percentInput = static function (?array $adjustment): string {
                 data-hash="<?= e($hash) ?>"
                 data-code="<?= e($row['account_code']) ?>"
                 data-description="<?= e($row['account_description']) ?>"
+                data-real-raw="<?= e(number_format((float)$row['acumulado'], 2, '.', '')) ?>"
+                data-simulated-raw="<?= e(number_format((float)$row['simulated_acumulado'], 2, '.', '')) ?>"
                 data-real="<?= e(format_brl((float)$row['acumulado'])) ?>"
                 data-simulated="<?= e(format_brl((float)$row['simulated_acumulado'])) ?>">
               <td class="dre-sticky dre-code-col">
@@ -323,6 +325,7 @@ $percentInput = static function (?array $adjustment): string {
   const apply = document.getElementById('simulationApplyAdjustment');
   const clear = document.getElementById('simulationClearAdjustment');
   let activeRow = null;
+  let activeOriginalFinalValue = '';
   let syncingColumnScroll = false;
 
   const classificationLabels = {
@@ -338,20 +341,46 @@ $percentInput = static function (?array $adjustment): string {
     return row.querySelector(`[data-field="${name}"]`);
   }
 
-  function normalizeMoney(value) {
-    value = String(value || '').trim().replace(/[R$\s]/g, '');
-    if (!value) return '';
-    if (value.startsWith('(') && value.endsWith(')')) {
-      value = '-' + value.slice(1, -1);
+  function parseMoney(value) {
+    let text = String(value || '').trim().replace(/[R$\s]/g, '');
+    if (!text) return null;
+
+    const parenthesized = text.startsWith('(') && text.endsWith(')');
+    const negative = parenthesized || text.startsWith('-');
+    text = text.replace(/[()]/g, '').replace(/^-/, '');
+
+    if (text.includes(',')) {
+      text = text.replace(/\./g, '').replace(',', '.');
+    } else {
+      const parts = text.split('.');
+      if (parts.length === 2) {
+        text = parts[1].length <= 2 ? `${parts[0]}.${parts[1]}` : parts.join('');
+      } else if (parts.length > 2) {
+        const last = parts[parts.length - 1];
+        const previousPartsLookGrouped = parts.slice(1, -1).every(part => part.length === 3);
+
+        if (last.length <= 2) {
+          text = `${parts.slice(0, -1).join('')}.${last}`;
+        } else if (previousPartsLookGrouped && last.length > 3) {
+          text = `${parts.slice(0, -1).join('')}${last.slice(0, 3)}.${last.slice(3)}`;
+        } else {
+          text = parts.join('');
+        }
+      }
     }
-    value = value.replace(/\./g, '').replace(',', '.');
-    const number = Number(value);
-    return Number.isFinite(number) ? number.toFixed(2) : '';
+
+    const number = Number(`${negative ? '-' : ''}${text}`);
+    return Number.isFinite(number) ? number : null;
   }
 
-  function parseMoney(value) {
-    const normalized = normalizeMoney(value);
-    return normalized === '' ? null : Number(normalized);
+  function normalizeMoney(value) {
+    const parsed = parseMoney(value);
+    return parsed === null ? '' : parsed.toFixed(2);
+  }
+
+  function parseRawMoney(value) {
+    const number = Number(String(value || '').replace(',', '.'));
+    return Number.isFinite(number) ? number : null;
   }
 
   function formatMoney(number) {
@@ -362,11 +391,40 @@ $percentInput = static function (?array $adjustment): string {
     });
   }
 
+  function formatRowMoney(row, rawName, formattedName) {
+    const parsed = parseRawMoney(row.dataset[rawName]);
+    return parsed === null ? (row.dataset[formattedName] || '') : formatMoney(parsed);
+  }
+
+  function formatMoneyMask(value) {
+    const text = String(value || '');
+    const negative = text.trim().startsWith('-') || (text.includes('(') && text.includes(')'));
+    const digits = text.replace(/\D/g, '');
+
+    if (!digits) {
+      return negative ? '-' : '';
+    }
+
+    const number = Number(digits) / 100;
+    return `${negative ? '-' : ''}${formatMoney(number)}`;
+  }
+
   function normalizeMoneyInput(input) {
     const parsed = parseMoney(input.value);
     if (parsed !== null) {
       input.value = formatMoney(parsed);
     }
+  }
+
+  function maskMoneyInput(input, event) {
+    const digits = input.value.replace(/\D/g, '');
+    if (!digits || (event?.inputType?.startsWith('delete') && /^0+$/.test(digits))) {
+      input.value = '';
+      return;
+    }
+
+    input.value = formatMoneyMask(input.value);
+    input.setSelectionRange(input.value.length, input.value.length);
   }
 
   function updateScrollState() {
@@ -398,8 +456,9 @@ $percentInput = static function (?array $adjustment): string {
     activeRow = row;
     title.textContent = row.dataset.description || 'Editar ajuste';
     subtitle.textContent = row.dataset.code ? `Codigo ${row.dataset.code}` : '';
-    real.value = row.dataset.real || '';
-    finalValue.value = row.dataset.simulated || row.dataset.real || '';
+    real.value = formatRowMoney(row, 'realRaw', 'real');
+    finalValue.value = formatRowMoney(row, 'simulatedRaw', 'simulated') || real.value;
+    activeOriginalFinalValue = normalizeMoney(finalValue.value);
     classification.value = field(row, 'classification')?.value || 'none';
     note.value = field(row, 'note')?.value || '';
     modal.show();
@@ -414,12 +473,27 @@ $percentInput = static function (?array $adjustment): string {
     normalizeMoneyInput(finalValue);
     const finalValueText = finalValue.value.trim();
     const noteValue = note.value.trim();
-    const hasValueChange = normalizeMoney(finalValueText) !== normalizeMoney(activeRow.dataset.real || '');
-    const hasContent = hasValueChange || noteValue || classification.value !== 'none';
+    const normalizedFinalValue = normalizeMoney(finalValueText);
+    const normalizedRealValue = normalizeMoney(activeRow.dataset.realRaw || activeRow.dataset.real || '');
+    const valueWasEdited = normalizedFinalValue !== activeOriginalFinalValue;
+    const hasValueChange = valueWasEdited && normalizedFinalValue !== '' && normalizedFinalValue !== normalizedRealValue;
+    const modeField = field(activeRow, 'mode');
+    const amountField = field(activeRow, 'amount');
+    const percentField = field(activeRow, 'percent');
 
-    field(activeRow, 'mode').value = hasValueChange ? 'override' : 'amount';
-    field(activeRow, 'amount').value = hasValueChange ? finalValueText : '';
-    field(activeRow, 'percent').value = '';
+    if (valueWasEdited) {
+      modeField.value = hasValueChange ? 'override' : 'amount';
+      amountField.value = hasValueChange ? normalizedFinalValue : '';
+      percentField.value = '';
+      activeRow.dataset.simulatedRaw = hasValueChange ? normalizedFinalValue : normalizedRealValue;
+      activeRow.dataset.simulated = formatMoney(parseRawMoney(activeRow.dataset.simulatedRaw));
+    }
+
+    const hasNumericAdjustment = modeField.value === 'percent'
+      ? Boolean(percentField.value.trim())
+      : Boolean(amountField.value.trim());
+    const hasContent = hasNumericAdjustment || noteValue || classification.value !== 'none';
+
     field(activeRow, 'classification').value = classification.value;
     field(activeRow, 'note').value = noteValue;
     activeRow.classList.toggle('is-changed', Boolean(hasContent));
@@ -476,12 +550,16 @@ $percentInput = static function (?array $adjustment): string {
 
   useReal.addEventListener('click', () => {
     finalValue.value = real.value;
+    normalizeMoneyInput(finalValue);
     finalValue.focus();
+    finalValue.select();
   });
   zeroValue.addEventListener('click', () => {
     finalValue.value = '0,00';
     finalValue.focus();
+    finalValue.select();
   });
+  finalValue.addEventListener('input', event => maskMoneyInput(finalValue, event));
   finalValue.addEventListener('blur', () => normalizeMoneyInput(finalValue));
   finalValue.addEventListener('keydown', event => {
     if (event.key === 'Enter') {
