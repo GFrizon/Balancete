@@ -116,6 +116,56 @@ CREATE TABLE IF NOT EXISTS `audit_logs` (
   CONSTRAINT `fk_audit_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS `dre_simulations` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(160) NOT NULL,
+  `description` TEXT NULL,
+  `company_id` INT UNSIGNED NULL,
+  `group_id` INT UNSIGNED NULL,
+  `unit_id` INT UNSIGNED NULL,
+  `year` SMALLINT UNSIGNED NOT NULL,
+  `month_start` TINYINT UNSIGNED NOT NULL,
+  `month_end` TINYINT UNSIGNED NOT NULL,
+  `status` ENUM('draft','active','archived') NOT NULL DEFAULT 'draft',
+  `created_by` INT UNSIGNED NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_dre_simulations_period` (`year`, `month_start`, `month_end`),
+  KEY `idx_dre_simulations_company` (`company_id`),
+  KEY `idx_dre_simulations_group` (`group_id`),
+  KEY `idx_dre_simulations_unit` (`unit_id`),
+  CONSTRAINT `fk_dre_simulations_company` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_dre_simulations_unit` FOREIGN KEY (`unit_id`) REFERENCES `business_units` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_dre_simulations_user` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `dre_simulation_adjustments` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `simulation_id` INT UNSIGNED NOT NULL,
+  `row_key_hash` CHAR(64) NOT NULL,
+  `row_key` TEXT NOT NULL,
+  `account_code` VARCHAR(20) NOT NULL DEFAULT '',
+  `account_description` VARCHAR(500) NOT NULL DEFAULT '',
+  `indentation_level` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `target_period` VARCHAR(7) NOT NULL DEFAULT '',
+  `adjustment_mode` ENUM('amount','percent','override') NOT NULL DEFAULT 'amount',
+  `adjustment_value` DECIMAL(18,2) NULL,
+  `adjustment_percent` DECIMAL(10,4) NULL,
+  `classification` ENUM('none','revenue','variable','fixed','non_recurring','non_operational') NOT NULL DEFAULT 'none',
+  `note` TEXT NULL,
+  `created_by` INT UNSIGNED NULL,
+  `updated_by` INT UNSIGNED NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_dre_sim_adjustment` (`simulation_id`, `row_key_hash`, `target_period`),
+  KEY `idx_dre_sim_adjustment_simulation` (`simulation_id`),
+  CONSTRAINT `fk_dre_sim_adjustment_simulation` FOREIGN KEY (`simulation_id`) REFERENCES `dre_simulations` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_dre_sim_adjustment_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_dre_sim_adjustment_updated_by` FOREIGN KEY (`updated_by`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS `remember_tokens` (
   `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   `user_id` INT UNSIGNED NOT NULL,

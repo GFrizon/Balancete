@@ -76,6 +76,10 @@ $routes = [
     ['GET',  'dre/details',              'DreController',        'details'],
     ['GET',  'dre/export',               'DreController',        'export'],
 
+    ['GET',  'simulations',              'SimulationController', 'index'],
+    ['POST', 'simulations/store',        'SimulationController', 'store'],
+    ['POST', 'simulations/delete',       'SimulationController', 'destroy'],
+
     ['GET',  'groups',                   'GroupController',      'index'],
     ['POST', 'groups/store',             'GroupController',      'store'],
     ['POST', 'groups/update',            'GroupController',      'update'],

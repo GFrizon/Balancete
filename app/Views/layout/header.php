@@ -34,6 +34,10 @@
              href="<?= url('dre') ?>"><i class="bi bi-list-tree me-1"></i>DRE</a>
         </li>
         <li class="nav-item">
+          <a class="nav-link <?= str_starts_with($_GET['route'] ?? '', 'simulations') ? 'active' : '' ?>"
+             href="<?= url('simulations') ?>"><i class="bi bi-sliders me-1"></i>Simulacoes</a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link <?= str_starts_with($_GET['route'] ?? '', 'imports') ? 'active' : '' ?>"
              href="<?= url('imports') ?>"><i class="bi bi-cloud-upload me-1"></i>Importações</a>
         </li>
