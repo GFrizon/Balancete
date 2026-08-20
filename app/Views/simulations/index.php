@@ -58,8 +58,8 @@ $periodLabel = static function (array $simulation): string {
     <div class="col-md-4">
       <div class="card shadow-sm h-100">
         <div class="card-body">
-          <div class="text-muted small">Proximas etapas</div>
-          <div class="fw-semibold mt-1">Recalculo gerencial e ponto de equilibrio</div>
+          <div class="text-muted small">Analise</div>
+          <div class="fw-semibold mt-1">Real, simulado, impacto e rastreio</div>
         </div>
       </div>
     </div>
@@ -100,7 +100,7 @@ $periodLabel = static function (array $simulation): string {
               <td><small class="text-muted"><?= date('d/m/Y H:i', strtotime((string)$simulation['updated_at'])) ?></small></td>
               <td class="text-end">
                 <div class="btn-group btn-group-sm">
-                  <a class="btn btn-outline-secondary disabled" href="#" aria-disabled="true" title="Editor entra na proxima etapa">
+                  <a class="btn btn-outline-secondary" href="<?= url('simulations/' . (int)$simulation['id']) ?>" title="Abrir simulacao">
                     <i class="bi bi-table"></i>
                   </a>
                   <form method="POST" action="<?= url('simulations/delete') ?>"
