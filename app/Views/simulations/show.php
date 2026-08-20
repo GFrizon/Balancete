@@ -260,24 +260,14 @@ $percentInput = static function (?array $adjustment): string {
             <input type="text" class="form-control" id="simulationEditReal" readonly>
           </div>
           <div class="col-6">
-            <label class="form-label fw-semibold">Simulado atual</label>
-            <input type="text" class="form-control" id="simulationEditSimulated" readonly>
+            <label class="form-label fw-semibold">Valor simulado</label>
+            <input type="text" class="form-control text-end" id="simulationEditFinal" placeholder="Ex: 0,00">
           </div>
-          <div class="col-md-5">
-            <label class="form-label fw-semibold">Modo</label>
-            <select class="form-select" id="simulationEditMode">
-              <option value="amount">Somar/subtrair</option>
-              <option value="percent">% do real</option>
-              <option value="override">Valor final</option>
-            </select>
-          </div>
-          <div class="col-md-7" id="simulationEditAmountGroup">
-            <label class="form-label fw-semibold">Valor R$</label>
-            <input type="text" class="form-control text-end" id="simulationEditAmount" placeholder="Ex: -500.000,00">
-          </div>
-          <div class="col-md-7" id="simulationEditPercentGroup">
-            <label class="form-label fw-semibold">Percentual</label>
-            <input type="text" class="form-control text-end" id="simulationEditPercent" placeholder="Ex: 110">
+          <div class="col-12">
+            <div class="btn-group btn-group-sm" role="group" aria-label="Ajustes rapidos">
+              <button type="button" class="btn btn-outline-secondary" id="simulationUseReal">Usar real</button>
+              <button type="button" class="btn btn-outline-secondary" id="simulationZeroValue">Zerar</button>
+            </div>
           </div>
           <div class="col-12">
             <label class="form-label fw-semibold">Tipo</label>
@@ -325,12 +315,9 @@ $percentInput = static function (?array $adjustment): string {
   const title = document.getElementById('simulationEditTitle');
   const subtitle = document.getElementById('simulationEditSubtitle');
   const real = document.getElementById('simulationEditReal');
-  const simulated = document.getElementById('simulationEditSimulated');
-  const mode = document.getElementById('simulationEditMode');
-  const amount = document.getElementById('simulationEditAmount');
-  const percent = document.getElementById('simulationEditPercent');
-  const amountGroup = document.getElementById('simulationEditAmountGroup');
-  const percentGroup = document.getElementById('simulationEditPercentGroup');
+  const finalValue = document.getElementById('simulationEditFinal');
+  const useReal = document.getElementById('simulationUseReal');
+  const zeroValue = document.getElementById('simulationZeroValue');
   const classification = document.getElementById('simulationEditClassification');
   const note = document.getElementById('simulationEditNote');
   const apply = document.getElementById('simulationApplyAdjustment');
@@ -351,10 +338,15 @@ $percentInput = static function (?array $adjustment): string {
     return row.querySelector(`[data-field="${name}"]`);
   }
 
-  function updateModeVisibility() {
-    const isPercent = mode.value === 'percent';
-    percentGroup.hidden = !isPercent;
-    amountGroup.hidden = isPercent;
+  function normalizeMoney(value) {
+    value = String(value || '').trim().replace(/[R$\s]/g, '');
+    if (!value) return '';
+    if (value.startsWith('(') && value.endsWith(')')) {
+      value = '-' + value.slice(1, -1);
+    }
+    value = value.replace(/\./g, '').replace(',', '.');
+    const number = Number(value);
+    return Number.isFinite(number) ? number.toFixed(2) : '';
   }
 
   function updateScrollState() {
@@ -387,26 +379,22 @@ $percentInput = static function (?array $adjustment): string {
     title.textContent = row.dataset.description || 'Editar ajuste';
     subtitle.textContent = row.dataset.code ? `Codigo ${row.dataset.code}` : '';
     real.value = row.dataset.real || '';
-    simulated.value = row.dataset.simulated || '';
-    mode.value = field(row, 'mode')?.value || 'amount';
-    amount.value = field(row, 'amount')?.value || '';
-    percent.value = field(row, 'percent')?.value || '';
+    finalValue.value = row.dataset.simulated || row.dataset.real || '';
     classification.value = field(row, 'classification')?.value || 'none';
     note.value = field(row, 'note')?.value || '';
-    updateModeVisibility();
     modal.show();
   }
 
   function applyEditor() {
     if (!activeRow) return;
-    const amountValue = amount.value.trim();
-    const percentValue = percent.value.trim();
+    const finalValueText = finalValue.value.trim();
     const noteValue = note.value.trim();
-    const hasContent = amountValue || percentValue || noteValue || classification.value !== 'none';
+    const hasValueChange = normalizeMoney(finalValueText) !== normalizeMoney(activeRow.dataset.real || '');
+    const hasContent = hasValueChange || noteValue || classification.value !== 'none';
 
-    field(activeRow, 'mode').value = mode.value;
-    field(activeRow, 'amount').value = amountValue;
-    field(activeRow, 'percent').value = percentValue;
+    field(activeRow, 'mode').value = hasValueChange ? 'override' : 'amount';
+    field(activeRow, 'amount').value = hasValueChange ? finalValueText : '';
+    field(activeRow, 'percent').value = '';
     field(activeRow, 'classification').value = classification.value;
     field(activeRow, 'note').value = noteValue;
     activeRow.classList.toggle('is-changed', Boolean(hasContent));
@@ -417,9 +405,7 @@ $percentInput = static function (?array $adjustment): string {
   }
 
   function clearEditor() {
-    mode.value = 'amount';
-    amount.value = '';
-    percent.value = '';
+    finalValue.value = '';
     classification.value = 'none';
     note.value = '';
     applyEditor();
@@ -463,7 +449,12 @@ $percentInput = static function (?array $adjustment): string {
     resizeObserver.observe(table);
   }
 
-  mode.addEventListener('change', updateModeVisibility);
+  useReal.addEventListener('click', () => {
+    finalValue.value = real.value;
+  });
+  zeroValue.addEventListener('click', () => {
+    finalValue.value = '0,00';
+  });
   apply.addEventListener('click', applyEditor);
   clear.addEventListener('click', clearEditor);
   updateColumnScrollbar();
